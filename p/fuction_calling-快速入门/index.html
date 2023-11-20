@@ -1,0 +1,477 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Fuction_Calling 快速入门"><title>Fuction_Calling 快速入门</title>
+<link rel=canonical href=https://hildam.github.io/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/><link rel=stylesheet href=/scss/style.min.abbd69b2908fdfcd5179898beaafd374514a86538d81639ddd2c58c06ae54e40.css><meta property="og:title" content="Fuction_Calling 快速入门"><meta property="og:description" content="Fuction_Calling 快速入门"><meta property="og:url" content="https://hildam.github.io/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/"><meta property="og:site_name" content="HildaM"><meta property="og:type" content="article"><meta property="article:section" content="Post"><meta property="article:published_time" content="2023-11-12T15:58:08+08:00"><meta property="article:modified_time" content="2023-11-12T15:58:08+08:00"><meta property="og:image" content="https://hildam.github.io/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/1699747644613.jpg"><meta name=twitter:title content="Fuction_Calling 快速入门"><meta name=twitter:description content="Fuction_Calling 快速入门"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://hildam.github.io/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/1699747644613.jpg"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/2023_hu3ae23303b8bc702850a9e46930b94ec7_600573_300x0_resize_box_3.png width=300 height=329 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>HildaM</a></h1><h2 class=site-description>Software Engineer. Java, Golang.....</h2></div></header><ol class=social-menu><li><a href=https://github.com/HildaM target=_blank title=GitHub rel=me><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg><span>Home</span></a></li><li><a href=/archives/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg><span>Archives</span></a></li><li><a href=/search/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg><span>Search</span></a></li><li><a href=/links/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg><span>Links</span></a></li><li><a href=/%E5%85%B3%E4%BA%8E%E6%88%91/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg><span>关于我</span></a></li><div class=menu-bottom-section><li id=dark-mode-toggle><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg><span>Dark Mode</span></li></div></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#1-定于-function>1. 定于 Function</a></li><li><a href=#2-调用-chatgpt>2. 调用 ChatGPT</a></li></ol></nav></div></section></aside><main class="main full-width"><article class="has-image main-article"><header class=article-header><div class=article-image><a href=/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/><img src=/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/1699747644613_huadb2298c974893890e316b9292267589_1494364_800x0_resize_q75_box.jpg srcset="/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/1699747644613_huadb2298c974893890e316b9292267589_1494364_800x0_resize_q75_box.jpg 800w, /p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/1699747644613_huadb2298c974893890e316b9292267589_1494364_1600x0_resize_q75_box.jpg 1600w" width=800 height=519 loading=lazy alt="Featured image of post Fuction_Calling 快速入门"></a></div><div class=article-details><header class=article-category><a href=/categories/chatgpt/>ChatGPT
+</a><a href=/categories/%E6%8A%80%E6%9C%AF/ style=background-color:#2a9d8f;color:#fff>技术
+</a><a href=/categories/python/>python</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/>Fuction_Calling 快速入门</a></h2><h3 class=article-subtitle>Fuction_Calling 快速入门</h3></div><footer class=article-time><div><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg><time class=article-time--published>Nov 12, 2023</time></div><div><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><time class=article-time--reading>6 minute read</time></div></footer></div></header><section class=article-content><h1 id=fuction_calling-快速入门>Fuction_Calling 快速入门</h1><h1 id=前言>前言</h1><p>Fuction Calling 的作用在于让 ChatGPT 返回的内容为“我们指定的 json 结构”，这样方便我们的项目函数直接处理 ChatGPT 的返回结构。</p><p>在没有这个功能之前，只能通过 prompt 工程来约束 ChatGPT 的行为，但往往效果不佳，返回的 json 结构不能稳定使用。</p><p>以下将以一个非常简单的需求来实现一个 Fuction Calling：输入一篇文章给 gpt，经它总结后，返回该文章的 标题、概述。</p><p>‍</p><h1 id=function-calling-简单入门>Function Calling 简单入门</h1><p>核心步骤：</p><ol><li><p>定义 fuction，告诉 gpt 函数的“样貌”</p><ol><li>函数名字、函数功能描述、函数需要返回的参数</li></ol></li><li><p>调用 gpt，同时指定需要调用的函数。</p></li></ol><p>‍</p><h2 id=1-定于-function>1. 定于 Function</h2><p>我们给 ChatGPT 的 Function 定义是一个 json 结构。它必须包含 3 个参数：</p><ul><li><p>​<code>name</code>​：指定这个 Function 的名字</p></li><li><p>​<code>description</code>​：描述这个 Function 有什么功能</p></li><li><p>​<code>parameters</code>​：这个函数返回什么参数，以及参数的类型是什么？</p><ul><li><p>​<code>parameters</code>​ 的结构也是以 json 进行描述，需要指定 type 为 &ldquo;object&rdquo;</p></li><li><p>每个 <code>parameters</code>​ 变量都需要定义 <code>type</code>​、​<code>description</code>​</p><ul><li>type：指定变量的类型</li><li>description：说明这个变量的用处</li></ul></li></ul></li></ul><p>‍</p><p>以下是我们此次测试的函数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>functions</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;show_summary&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Shows the title and summary of some text.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;title&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Title of the text output.&#34;</span>
+</span></span><span class=line><span class=cl>                <span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;summary&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Summary of the text output.&#34;</span>
+</span></span><span class=line><span class=cl>                <span class=p>}</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><h2 id=2-调用-chatgpt>2. 调用 ChatGPT</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>response</span> <span class=o>=</span> <span class=n>openai</span><span class=o>.</span><span class=n>ChatCompletion</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 指定model类型</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt-3.5-turbo-1106&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=c1># prompt配置</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 系统全局配置（可选）</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;system&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;You are a useful assistant.&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 用户配置（必选，prompt的位置）</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=sa>f</span><span class=s2>&#34;Here is an article: </span><span class=si>{</span><span class=n>article</span><span class=si>}</span><span class=s2>. Please return a title ans summary that matches the text of it.&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 可供chatgpt选择的function列表</span>
+</span></span><span class=line><span class=cl>    <span class=n>functions</span> <span class=o>=</span> <span class=n>functions</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 指定这次调用的function类型</span>
+</span></span><span class=line><span class=cl>    <span class=n>function_call</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;show_summary&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>根据调用的结果，我们先检查它的原始类型，再有针对性地使用 json 工具进行处理：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>response</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 输出</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;choices&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;finish_reason&#34;</span><span class=p>:</span> <span class=s2>&#34;stop&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;index&#34;</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;message&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>null</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;function_call&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;arguments&#34;</span><span class=p>:</span> <span class=s2>&#34;{</span><span class=se>\&#34;</span><span class=s2>title</span><span class=se>\&#34;</span><span class=s2>:</span><span class=se>\&#34;</span><span class=s2>The Mysterious Mansion</span><span class=se>\&#34;</span><span class=s2>,</span><span class=se>\&#34;</span><span class=s2>summary</span><span class=se>\&#34;</span><span class=s2>:</span><span class=se>\&#34;</span><span class=s2>The story revolves around a naive and clumsy girl named Xie Beileida, who becomes a maid at a grand mansion in the mountains. The mansion is managed by a talkative lady and a courteous viscount, and the maid enjoys a carefree life there. However, there is a forbidden rule that no one can approach the heavy wooden door leading to the underground basement. When the master of the mansion unexpectedly dies, the maid suspects that the secret of the mansion is related to his death and decides to open the forbidden door. What she discovers inside the door is a shocking revelation that unravels the mystery of the mansion and breaks an ancient curse. This tale of mystery and bravery leaves a deep impression on the protagonist, and she thanks the courageous girl, Xie Beileida, for giving the story a good ending.</span><span class=se>\&#34;</span><span class=s2>}&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;show_summary&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;assistant&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>],</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;created&#34;</span><span class=p>:</span> <span class=mi>1699774772</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;id&#34;</span><span class=p>:</span> <span class=s2>&#34;chatcmpl-8JzM4BDXLVzeBay7aKNNXMwCTOfi9&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;model&#34;</span><span class=p>:</span> <span class=s2>&#34;gpt-3.5-turbo-1106&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;object&#34;</span><span class=p>:</span> <span class=s2>&#34;chat.completion&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;system_fingerprint&#34;</span><span class=p>:</span> <span class=s2>&#34;fp_eeff13170a&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;usage&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;completion_tokens&#34;</span><span class=p>:</span> <span class=mi>177</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;prompt_tokens&#34;</span><span class=p>:</span> <span class=mi>1220</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;total_tokens&#34;</span><span class=p>:</span> <span class=mi>1397</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>json 解析：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># json 解析</span>
+</span></span><span class=line><span class=cl><span class=n>arguments</span> <span class=o>=</span> <span class=n>response</span><span class=p>[</span><span class=s2>&#34;choices&#34;</span><span class=p>][</span><span class=mi>0</span><span class=p>][</span><span class=s2>&#34;message&#34;</span><span class=p>][</span><span class=s2>&#34;function_call&#34;</span><span class=p>][</span><span class=s2>&#34;arguments&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>json_object</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>arguments</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>json_object</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 输出</span>
+</span></span><span class=line><span class=cl><span class=p>{</span><span class=s1>&#39;title&#39;</span><span class=p>:</span> <span class=s1>&#39;The Mysterious Mansion&#39;</span><span class=p>,</span> <span class=s1>&#39;summary&#39;</span><span class=p>:</span> <span class=s1>&#39;The story revolves around a naive and clumsy girl named Xie Beileida, who becomes a maid at a grand mansion in the mountains. The mansion is managed by a talkative lady and a courteous viscount, and the maid enjoys a carefree life there. However, there is a forbidden rule that no one can approach the heavy wooden door leading to the underground basement. When the master of the mansion unexpectedly dies, the maid suspects that the secret of the mansion is related to his death and decides to open the forbidden door. What she discovers inside the door is a shocking revelation that unravels the mystery of the mansion and breaks an ancient curse. This tale of mystery and bravery leaves a deep impression on the protagonist, and she thanks the courageous girl, Xie Beileida, for giving the story a good ending.&#39;</span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-gdscript3 data-lang=gdscript3><span class=line><span class=cl><span class=c1>## 3. 完整的可运行代码</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=n>import</span> <span class=n>os</span>
+</span></span><span class=line><span class=cl><span class=n>from</span> <span class=n>dotenv</span> <span class=n>import</span> <span class=n>load_dotenv</span>
+</span></span><span class=line><span class=cl><span class=n>import</span> <span class=n>openai</span>
+</span></span><span class=line><span class=cl><span class=n>import</span> <span class=n>json</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>from</span> <span class=n>Function_Calling</span><span class=o>.</span><span class=n>utils</span> <span class=n>import</span> <span class=n>paragraph</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 加载参数</span>
+</span></span><span class=line><span class=cl><span class=n>load_dotenv</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>openai</span><span class=o>.</span><span class=n>api_key</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>getenv</span><span class=p>(</span><span class=s2>&#34;OPENAI_KEY&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 使用chatgptAPI，归纳出总结文章的标题。返回结果要求是json结构</span>
+</span></span><span class=line><span class=cl><span class=n>article</span> <span class=o>=</span> <span class=s2>&#34;&#34;</span> <span class=c1># 请自己输入文章</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 定义function结构。告诉chatgpt将要调用的functon是什么</span>
+</span></span><span class=line><span class=cl><span class=n>functions</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;show_summary&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Shows the title and summary of some text.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;title&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Title of the text output.&#34;</span>
+</span></span><span class=line><span class=cl>                <span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;summary&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Summary of the text output.&#34;</span>
+</span></span><span class=line><span class=cl>                <span class=p>}</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># OpenAI request</span>
+</span></span><span class=line><span class=cl><span class=n>response</span> <span class=o>=</span> <span class=n>openai</span><span class=o>.</span><span class=n>ChatCompletion</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 指定model类型</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt-3.5-turbo-1106&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=c1># prompt配置</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 系统全局配置（可选）</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;system&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;You are a useful assistant.&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 用户配置（必选，prompt的位置）</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>f</span><span class=s2>&#34;Here is an article: {article}. Please return a title ans summary that matches the text of it.&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 可供chatgpt选择的function列表</span>
+</span></span><span class=line><span class=cl>    <span class=n>functions</span> <span class=o>=</span> <span class=n>functions</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 指定这次调用的function类型</span>
+</span></span><span class=line><span class=cl>    <span class=n>function_call</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;show_summary&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 打印全部</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>response</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># json 解析</span>
+</span></span><span class=line><span class=cl><span class=n>arguments</span> <span class=o>=</span> <span class=n>response</span><span class=p>[</span><span class=s2>&#34;choices&#34;</span><span class=p>][</span><span class=mi>0</span><span class=p>][</span><span class=s2>&#34;message&#34;</span><span class=p>][</span><span class=s2>&#34;function_call&#34;</span><span class=p>][</span><span class=s2>&#34;arguments&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>json_object</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>arguments</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>json_object</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li><p>请在该文件的同级下创建 .env 文件，里面配置好 OPENAI_KEY 的参数</p><ul><li><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>OPENAI_KEY</span><span class=o>=</span><span class=n>xxxxx</span>
+</span></span></code></pre></td></tr></table></div></div></li></ul></li></ul><p>‍</p><p>‍</p><h1 id=更精细的-function-定义>更精细的 Function 定义</h1><p><a class=link href=https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models target=_blank rel=noopener>How to call functions with chat models | OpenAI Cookbook</a></p><p>Function Calling 的核心难点在于如何定义一个“良好”的函数。在 <a class=link href=https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models target=_blank rel=noopener>OpenAI CookBook</a> 中给出了一些比较好的定义参考：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>functions</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;get_current_weather&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Get the current weather&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;location&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;The city and state, e.g. San Francisco, CA&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;format&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;celsius&#34;</span><span class=p>,</span> <span class=s2>&#34;fahrenheit&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;The temperature unit to use. Infer this from the users location.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;location&#34;</span><span class=p>,</span> <span class=s2>&#34;format&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;get_n_day_weather_forecast&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Get an N-day weather forecast&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;location&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;The city and state, e.g. San Francisco, CA&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;format&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;celsius&#34;</span><span class=p>,</span> <span class=s2>&#34;fahrenheit&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;The temperature unit to use. Infer this from the users location.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;num_days&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;integer&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;The number of days to forecast&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>}</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;location&#34;</span><span class=p>,</span> <span class=s2>&#34;format&#34;</span><span class=p>,</span> <span class=s2>&#34;num_days&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=err>‍</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 让 Function 定义更灵活</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>我可以在</span> <span class=n>Function</span> <span class=n>中插入</span><span class=err>“</span><span class=n>变量</span><span class=err>”，</span><span class=n>让其随着程序的运行而变化</span><span class=err>。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>比如接下来的例子中</span><span class=err>，</span><span class=n>将展示如何用</span> <span class=n>Function</span> <span class=n>Calling</span> <span class=n>来动态生成指定的</span> <span class=n>SQL</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>‍</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>定义</span> <span class=n>Function</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>```</span><span class=n>python</span>
+</span></span><span class=line><span class=cl><span class=n>functions</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;ask_database&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Use this function to answer user questions about music. Input should be a fully formed SQL query.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;query&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=sa>f</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>                            SQL query extracting info to answer the user&#39;s question.
+</span></span></span><span class=line><span class=cl><span class=s2>                            SQL should be written using this database schema:
+</span></span></span><span class=line><span class=cl><span class=s2>                            </span><span class=si>{</span><span class=n>database_schema_string</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>                            The query should be returned in plain text, not in JSON.
+</span></span></span><span class=line><span class=cl><span class=s2>                            &#34;&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>}</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;query&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li>​<code>{database_schema_string}</code>​：我们传给 Function 的可变参数，用于指定某一个特定的表结构</li></ul><p>‍</p><p>在配置询问的时候，我们就可以根据这个表结构，询问特定操作下的 SQL 如何写。以下是输出示例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=err>user:</span> <span class=err>What</span> <span class=err>is</span> <span class=err>the</span> <span class=err>name</span> <span class=err>of</span> <span class=err>the</span> <span class=err>album</span> <span class=err>with</span> <span class=err>the</span> <span class=err>most</span> <span class=err>tracks?</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>assistant:</span> <span class=p>{</span><span class=err>&#39;name&#39;:</span> <span class=err>&#39;ask_database&#39;,</span> <span class=err>&#39;arguments&#39;:</span> <span class=err>&#39;{\n</span>  <span class=nt>&#34;query&#34;</span><span class=p>:</span> <span class=s2>&#34;SELECT al.Title, COUNT(t.TrackId) AS NumTracks FROM Album al INNER JOIN Track t ON al.AlbumId = t.AlbumId GROUP BY al.AlbumId ORDER BY NumTracks DESC LIMIT 1&#34;</span><span class=err>\n</span><span class=p>}</span><span class=err>&#39;}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>function</span> <span class=err>(ask_database):</span> <span class=p>[</span><span class=err>(&#39;Greatest</span> <span class=err>Hits&#39;</span><span class=p>,</span> <span class=mi>57</span><span class=err>)</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div></section><footer class=article-footer><section class=article-copyright><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg><span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>Related content</h2><div class=related-content><div class="flex article-list--tile"><article class=has-image><a href=/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/><div class=article-image><img src=/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/113516139_p0.1e48a7a5a1c6446db54a8b58f78c36aa_hu860343e6a89ea3c01b81e7ebe66315aa_2765491_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post Golang 分布式定时任务模块研究" data-key="Golang 分布式定时任务模块研究" data-hash="md5-HkinpaHGRG21SotY94w2qg=="></div><div class=article-details><h2 class=article-title>Golang 分布式定时任务模块研究</h2></div></a></article><article class=has-image><a href=/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/><div class=article-image><img src=/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT.807db15e48e6da9ecb8bc635900b73d7_hu8b370bc56ba849f07817004841874d66_136981_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post golang 依赖注入" data-key="golang 依赖注入" data-hash="md5-gH2xXkjm2p7Li8Y1kAtz1w=="></div><div class=article-details><h2 class=article-title>golang 依赖注入</h2></div></a></article><article class=has-image><a href=/p/%E7%BB%9F%E4%B8%80%E7%AE%A1%E7%90%86%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%B1%A0/><div class=article-image><img src=/p/%E7%BB%9F%E4%B8%80%E7%AE%A1%E7%90%86%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%B1%A0/FTwneuGaAAEIwOy.8e2a6ddf6ec18fca5a630c1cc8ae211a_hu3cd8c2a946427a90a45d3467884b8180_568116_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post 统一管理项目的线程池" data-key=统一管理项目的线程池 data-hash="md5-jipt327Bj8paYwwcyK4hGg=="></div><div class=article-details><h2 class=article-title>统一管理项目的线程池</h2></div></a></article><article class=has-image><a href=/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/><div class=article-image><img src=/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/83565371_p0.a1df237a93ba3353d3c0d987520cc218_hua456e595fa8251e7d0c86f0f4b777cf0_328426_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post Redis Lua 脚本实现大数据分批操作" data-key="Redis Lua 脚本实现大数据分批操作" data-hash="md5-od8jepO6M1PTwNmHUgzCGA=="></div><div class=article-details><h2 class=article-title>Redis Lua 脚本实现大数据分批操作</h2></div></a></article><article class=has-image><a href=/p/%E4%BD%BF%E7%94%A8%E6%B3%A8%E8%A7%A3%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95%E7%9A%84%E4%BA%8B%E5%8A%A1%E6%89%A7%E8%A1%8C/><div class=article-image><img src=/p/%E4%BD%BF%E7%94%A8%E6%B3%A8%E8%A7%A3%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95%E7%9A%84%E4%BA%8B%E5%8A%A1%E6%89%A7%E8%A1%8C/112155320_p0.3e4ec0a8a34fc4e83a2b4f0a11c5a89a_hu01d92a70b7b8c10e235bacf971634f06_5629370_250x150_fill_box_smart1_3.png width=250 height=150 loading=lazy alt="Featured image of post 使用注解实现方法的事务执行" data-key=使用注解实现方法的事务执行 data-hash="md5-Pk7AqKNPxOg6K08KEcWomg=="></div><div class=article-details><h2 class=article-title>使用注解实现方法的事务执行</h2></div></a></article></div></div></aside><script src=https://utteranc.es/client.js repo=HildaM/hilda-blog-comment issue-term=pathname crossorigin=anonymous async></script><style>.utterances{max-width:unset}</style><script>let utterancesLoaded=!1;function setUtterancesTheme(e){let t=document.querySelector(".utterances iframe");t&&t.contentWindow.postMessage({type:"set-theme",theme:`github-${e}`},"https://utteranc.es")}addEventListener("message",e=>{if(e.origin!=="https://utteranc.es")return;utterancesLoaded=!0,setUtterancesTheme(document.documentElement.dataset.scheme)}),window.addEventListener("onColorSchemeChange",e=>{if(!utterancesLoaded)return;setUtterancesTheme(e.detail)})</script><footer class=site-footer><section class=copyright>&copy;
+2023 HildaM</section><section class=powerby>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.21.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>

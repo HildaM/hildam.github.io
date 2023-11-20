@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>redis on HildaM</title><link>https://hildam.github.io/categories/redis/</link><description>Recent content in redis on HildaM</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sat, 14 Oct 2023 10:35:07 +0800</lastBuildDate><atom:link href="https://hildam.github.io/categories/redis/index.xml" rel="self" type="application/rss+xml"/><item><title>Redis Lua 脚本实现大数据分批操作</title><link>https://hildam.github.io/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/</link><pubDate>Sat, 14 Oct 2023 10:35:07 +0800</pubDate><guid>https://hildam.github.io/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/</guid><description>&lt;img src="https://hildam.github.io/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/83565371_p0.jpg" alt="Featured image of post Redis Lua 脚本实现大数据分批操作" />&lt;h1 id="redis-lua-脚本实现大数据分批操作">Redis Lua 脚本实现大数据分批操作&lt;/h1>
+&lt;h1 id="redis-大数据分批操作">Redis 大数据分批操作&lt;/h1>
+&lt;p>一般来讲，如果 Redis 一次性执行太多数据的话，可能导致 Redis 服务主进程被长时间阻塞，造成其他命令的执行收到影响。&lt;/p>
+&lt;p>可以使用 Lua 脚本对每次执行的数量做一个限制，数据量超过一定限制后，分批量执行&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="代码实现">代码实现&lt;/h2>
+&lt;p>来源：&lt;a class="link" href="https://www.cnblogs.com/Finley/p/16400287.html" target="_blank" rel="noopener"
+>DelayQueue —— golang 实现延迟队列&lt;/a>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-lua" data-lang="lua">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">local&lt;/span> &lt;span class="n">unack2retry&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kr">function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">msgs&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">local&lt;/span> &lt;span class="n">retryCounts&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;HMGet&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="n">unpack&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">msgs&lt;/span>&lt;span class="p">))&lt;/span> &lt;span class="c1">-- get retry count&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">for&lt;/span> &lt;span class="n">i&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">v&lt;/span> &lt;span class="kr">in&lt;/span> &lt;span class="n">ipairs&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">retryCounts&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kr">do&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">local&lt;/span> &lt;span class="n">k&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">msgs&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">i&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">if&lt;/span> &lt;span class="n">v&lt;/span> &lt;span class="o">~=&lt;/span> &lt;span class="kc">false&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">v&lt;/span> &lt;span class="o">~=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">v&lt;/span> &lt;span class="o">~=&lt;/span> &lt;span class="s1">&amp;#39;&amp;#39;&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">tonumber&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">v&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="mi">0&lt;/span> &lt;span class="kr">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;HIncrBy&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="n">k&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">-- reduce retry count&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;LPush&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="n">k&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">-- add to retry&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;HDel&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="n">k&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">-- del retry count&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;SAdd&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="n">k&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">-- add to garbage&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">local&lt;/span> &lt;span class="n">msgs&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;ZRangeByScore&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="s1">&amp;#39;0&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ARGV&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">])&lt;/span> &lt;span class="c1">-- get retry msg&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">#&lt;/span>&lt;span class="n">msgs&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kr">then&lt;/span> &lt;span class="kr">return&lt;/span> &lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">if&lt;/span> &lt;span class="o">#&lt;/span>&lt;span class="n">msgs&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">4000&lt;/span> &lt;span class="kr">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">unack2retry&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">msgs&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">local&lt;/span> &lt;span class="n">buf&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">for&lt;/span> &lt;span class="n">_&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">v&lt;/span> &lt;span class="kr">in&lt;/span> &lt;span class="n">ipairs&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">msgs&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kr">do&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">table.insert&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">buf&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">v&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">if&lt;/span> &lt;span class="o">#&lt;/span>&lt;span class="n">buf&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="mi">4000&lt;/span> &lt;span class="kr">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">unack2retry&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">buf&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">buf&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">#&lt;/span>&lt;span class="n">buf&lt;/span> &lt;span class="o">&amp;gt;&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kr">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">unack2retry&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">buf&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">end&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="n">redis.call&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;ZRemRangeByScore&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">KEYS&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">],&lt;/span> &lt;span class="s1">&amp;#39;0&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ARGV&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">])&lt;/span> &lt;span class="c1">-- remove msgs from unack&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ol>
+&lt;li>
+&lt;p>首先定义了一个名为&lt;code>unack2retry&lt;/code>​的函数，该函数接收一个参数&lt;code>msgs&lt;/code>​,表示未确认的消息列表。函数内部首先获取每个消息的重试次数，然后遍历这些消息，根据重试次数将它们分为三类：&lt;/p>
+&lt;ul>
+&lt;li>如果重试次数大于0,则将其添加到重试队列(使用&lt;code>LPush&lt;/code>​命令);&lt;/li>
+&lt;li>否则，将其从重试次数哈希表中删除(使用&lt;code>HDel&lt;/code>​命令),并将其添加到垃圾队列(使用&lt;code>SAdd&lt;/code>​命令)。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>接下来，从Redis中获取指定分数范围内的未确认消息(使用&lt;code>ZRangeByScore&lt;/code>​命令)。如果没有未确认消息，则直接返回。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>如果未确认消息的数量小于4000,则直接调用&lt;code>unack2retry&lt;/code>​函数处理所有未确认消息。否则，将未确认消息分批处理，每批最多包含4000条消息。对于每批消息，将其插入到一个缓冲区(&lt;code>buf&lt;/code>​)中，当缓冲区满时，调用&lt;code>unack2retry&lt;/code>​函数处理缓冲区中的未确认消息，并清空缓冲区。最后，如果缓冲区中仍有未确认消息，则调用&lt;code>unack2retry&lt;/code>​函数处理剩余的消息。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>最后，从Redis中删除已处理过的未确认消息(使用&lt;code>ZRemRangeByScore&lt;/code>​命令)。&lt;/p>
+&lt;/li>
+&lt;/ol></description></item></channel></rss>

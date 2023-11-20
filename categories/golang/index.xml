@@ -1,0 +1,1224 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Golang on HildaM</title><link>https://hildam.github.io/categories/golang/</link><description>Recent content in Golang on HildaM</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 20 Nov 2023 10:30:55 +0800</lastBuildDate><atom:link href="https://hildam.github.io/categories/golang/index.xml" rel="self" type="application/rss+xml"/><item><title>Golang 分布式定时任务模块研究</title><link>https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/</link><pubDate>Mon, 20 Nov 2023 10:30:55 +0800</pubDate><guid>https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/</guid><description>&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/113516139_p0.jpg" alt="Featured image of post Golang 分布式定时任务模块研究" />&lt;h1 id="golang-分布式定时任务模块研究">[Golang] 分布式定时任务模块研究&lt;/h1>
+&lt;h1 id="学习资料">学习资料&lt;/h1>
+&lt;ul>
+&lt;li>&lt;a class="link" href="https://mp.weixin.qq.com/s?__biz=MzkxMjQzMjA0OQ==&amp;amp;amp;mid=2247483769&amp;amp;amp;idx=1&amp;amp;amp;sn=38d4a0c15e0e7a9f74a58e43f293e8a2&amp;amp;amp;chksm=c10c4fa7f67bc6b1b08602e328c7ac506e4dc4c942427c730ecbfe3f18f0d1e268b1aa1e0d32&amp;amp;amp;cur_album_id=2709593649634033668&amp;amp;amp;scene=189#wechat_redirect" target="_blank" rel="noopener"
+>xTimer 项目代码分析文章&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://mp.weixin.qq.com/s?__biz=MzkxMjQzMjA0OQ==&amp;amp;amp;mid=2247483771&amp;amp;amp;idx=1&amp;amp;amp;sn=dba806a7c991f75a60e1fe69876e6c3f&amp;amp;amp;chksm=c10c4fa5f67bc6b3fa89fdc5aeab7121245c52410171782b25430ded202f2dea3081cd547e09&amp;amp;amp;mpshare=1&amp;amp;amp;scene=1&amp;amp;amp;srcid=11097sOTubzkkcEgCrs3hfbV&amp;amp;amp;sharer_shareinfo=76489323780177338e51560e62f79851&amp;amp;amp;sharer_shareinfo_first=76489323780177338e51560e62f79851#rd" target="_blank" rel="noopener"
+>golang 协程池文章&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;h1 id="术语表">术语表&lt;/h1>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>&lt;strong>术语&lt;/strong>&lt;/th>
+&lt;th>&lt;strong>英文名&lt;/strong>&lt;/th>
+&lt;th>&lt;strong>含义&lt;/strong>&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>分布式定时器服务&lt;/td>
+&lt;td>workflow.timer&lt;/td>
+&lt;td>前团队在工作实践中建设的定时器基础组件&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>定时器&lt;/td>
+&lt;td>timer&lt;/td>
+&lt;td>包含一组定时任务的定义的存储介质. 和定时任务是一对多关系，定时任务按照定时器的定义定时执行. 可以类比为一个闹钟&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>定时任务&lt;/td>
+&lt;td>timer task&lt;/td>
+&lt;td>定时器的一次执行实例，可以类比为闹钟提供的一次唤醒服务.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>时间分片&lt;/td>
+&lt;td>time slice&lt;/td>
+&lt;td>基于一定长度将时间线切割为一系列分片，各定时任务基于执行时间从属于不同时间分片.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>二维分片&lt;/td>
+&lt;td>time_bucket slice&lt;/td>
+&lt;td>在时间分片基础上，增加分桶维度，将每个时间范围内的定时任务尽可能均衡地划分到一系列二维分片中.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>调取器模块&lt;/td>
+&lt;td>scheduler module&lt;/td>
+&lt;td>分布式定时器服务三大模块之一，负责在全局统筹分配定时任务集合.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>调度器协程&lt;/td>
+&lt;td>scheduler goroutine&lt;/td>
+&lt;td>调度器模块中的并发执行单位，一个模块会根据配置开启多个协程并发工作.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>触发器模块&lt;/td>
+&lt;td>trigger module&lt;/td>
+&lt;td>分布式定时器服务三大模块之一，负责主动轮询唤起达到执行条件的定时器.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>触发器协程&lt;/td>
+&lt;td>trigger goroutine&lt;/td>
+&lt;td>触发器模块中的并发执行单位，一个模块会根据配置开启多个协程并发工作.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>执行器模块&lt;/td>
+&lt;td>executor module&lt;/td>
+&lt;td>分布式定时器服务三大模块之一，负责执行定时任务.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>执行器协程&lt;/td>
+&lt;td>executor goroutine&lt;/td>
+&lt;td>执行器模块中的并发执行单位，一个模块会根据配置开启多个协程并发工作.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>迁移器模块&lt;/td>
+&lt;td>migrator module&lt;/td>
+&lt;td>负责将热点定时任务数据沿 关系型数据库-&amp;gt; 缓存组件 -&amp;gt; 节点内存 这一顺序进行迁移的模块.（目前还未实现）&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>一级时间步&lt;/td>
+&lt;td>time step1&lt;/td>
+&lt;td>迁移器批量将定时器任务从关系型数据库迁移到缓存组件的时间间隔.&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>二级时间步&lt;/td>
+&lt;td>time step2&lt;/td>
+&lt;td>迁移器批量将定时器任务从缓存组件迁移到节点内存的时间间隔.&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;hr>
+&lt;h1 id="定时任务实现思路">定时任务实现思路&lt;/h1>
+&lt;h2 id="1-主动轮询扫表执行">1. 主动轮询，扫表执行&lt;/h2>
+&lt;p>抛开“分布式定时任务”这些高大上的名词，从最原始的需求出发，我们就是希望“任务”能够在“指定时间”执行。所以最简单的方法就是将任务执行的时间记录在一张表上，等到了指定时间后开始执行。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>于是乎，定时器需要 2 个核心模块：轮询器 + 触发器&lt;/p>
+&lt;ul>
+&lt;li>注册&lt;strong>定时器&lt;/strong>：解析并将一系列&lt;strong>定时任务&lt;/strong>平铺直叙地展开，每笔定时任务明确展示&lt;strong>执行时间&lt;/strong>这一指标&lt;/li>
+&lt;li>节点自&lt;strong>轮询&lt;/strong>：每间隔一个微小的时间范围，对定时任务列表进行&lt;strong>全量查询&lt;/strong>&lt;/li>
+&lt;li>&lt;strong>过滤&amp;amp;触发&lt;/strong>：以 &lt;strong>执行时间小于等于当前时刻&lt;/strong> 作为过滤条件，摘出满足执行条件的定时任务进行执行.&lt;/li>
+&lt;/ul>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109153636-hra165h.png"
+width="1080"
+height="615"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109153636-hra165h_hud61fca5fa67ee78474dc79d6013893ac_427215_480x0_resize_box_3.png 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109153636-hra165h_hud61fca5fa67ee78474dc79d6013893ac_427215_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="image"
+class="gallery-image"
+data-flex-grow="175"
+data-flex-basis="421px"
+>​&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>这样就能满足“定时任务”的最基本需求。&lt;/p>
+&lt;p>不过这个丐版的实现，每次执行需要耗费 O(N) 的时间复杂度，所以说它随着任务量的增加效率会逐渐降低。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="2-存储优化--有序表">2. 存储优化 —— 有序表&lt;/h2>
+&lt;p>上述的记录采用最基本的 MySQL 存储，这让每次查询的时间复杂度为 O(N)。查询的代价随着 N 记录数的增加而增加。&lt;/p>
+&lt;p>&lt;strong>我们可以通过将时间复杂度“平摊”到每一次查询中，比如说将存储结构更换为“红黑树”、“跳表”。&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>将插入记录的时间复杂度由 O(1) -&amp;gt;O(logN)为代价，换取&lt;strong>查询时间复杂度&lt;/strong>由&lt;strong>O(N) -&amp;gt; O(logN)&lt;/strong> 的优化.&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>具体来说可以使用 Redis ZSet 进行存储，以定时任务&lt;strong>执行时间&lt;/strong>为 &lt;strong>Score&lt;/strong> 进行有序结构的搭建，当定时任务数量达到一定量级时，ZSet 底层基于跳表作为有序表的实现. 一些更细致的实现流程如下&lt;/p>
+&lt;ul>
+&lt;li>以 Redis ZSet 作为存储介质；&lt;/li>
+&lt;li>每次添加定时任务时，执行 &lt;strong>ZAdd&lt;/strong> 动作，以执行时间的时间戳作为排序的键(Score) 进行有序结构的搭建；&lt;/li>
+&lt;li>每次查询定时任务时，执行 &lt;strong>ZRangeByScore&lt;/strong> 动作，以当前时刻的时间戳加上一个微小偏移量作 score 的左右边界.&lt;/li>
+&lt;/ul>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109154103-otnnu1s.png"
+width="1080"
+height="426"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109154103-otnnu1s_hu84993af20ad6b26c23c715cf4a3428e5_146980_480x0_resize_box_3.png 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109154103-otnnu1s_hu84993af20ad6b26c23c715cf4a3428e5_146980_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="image"
+class="gallery-image"
+data-flex-grow="253"
+data-flex-basis="608px"
+>​&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="3-存储优化--纵向分治">3. 存储优化 —— 纵向分治&lt;/h2>
+&lt;p>上述的优化是在查询时间上面，而查询的范围是“整个”表格。&lt;/p>
+&lt;p>但其实，我们只需要关注“即将执行”的任务，对于那些“更晚执行”的任务，其实是当前任务的干扰项，我们需要想办法“跳过”这些数据。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>我们可以对“时间”进行分片，先查询“接近即将执行”数据片段，这样就可以保证高效率。例如：&lt;/p>
+&lt;ul>
+&lt;li>插入每笔定时任务时，根据执行时间推算出所属的分钟级时间范围表达式，例如：2022-09-17-11:00:03 -&amp;gt; 2022-09-17-11:00:00_2022-09-17-11:01:00&lt;/li>
+&lt;li>以分钟级时间范围表达式为 key，将定时任务任务插入到不同 ZSet 中，组成一系列相互隔离的有序表结构.&lt;/li>
+&lt;li>每一次查询过程中，同样根据当前时刻推算出对应分钟级时间范围表达式，并以此为 key 查找到对应的有序表进行 ZRange 查询.&lt;/li>
+&lt;/ul>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109154526-m4245te.png"
+width="1080"
+height="369"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109154526-m4245te_hudddbe8623ff324cecaff7010a0743426_103243_480x0_resize_box_3.png 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109154526-m4245te_hudddbe8623ff324cecaff7010a0743426_103243_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="image"
+class="gallery-image"
+data-flex-grow="292"
+data-flex-basis="702px"
+>​&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>每一次执行的任务量从 N 下降到 N&amp;rsquo;（N&amp;rsquo; &amp;laquo; N)，大大提升每次执行的效率。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="4-存储优化横向分治">4. 存储优化：横向分治&lt;/h2>
+&lt;p>截止目前，我们都是站在“单核”的视角优化。对于生产环境下“分布式”的需求，我们还需要考虑如何在“集群”、“多核”层面优化。而且，golang 单个节点，也需要使用 goroutine 实现高并发。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>因为执行任务本身是一件 CPU 密集型任务，所以需要避免因为多协程介入导致出现“锁争抢”的问题。所以，在分片上需要做到资源的最小需求，每一个分片对应的任务集都应该只由一个 goroutine 负责轮询。&lt;/p>
+&lt;p>因此相应的要求是，&lt;strong>需要将时间分片拆解为更细的粒度，即在横向上额外增加一个分桶的维度，从而保证每个时间范围内能有对应于分桶数量的goroutine并发参加工作.&lt;/strong>&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>流程优化：&lt;/p>
+&lt;ol>
+&lt;li>插入定时任务时，首先根据执行时间，确定其从属的时间范围；&lt;/li>
+&lt;li>其次，根据定时任务的唯一标识 id，结合服务对最大桶数的设置参数，随机将定时任务划分到一个桶中；&lt;/li>
+&lt;li>以时间范围和桶号组装形成一个新的 key，形成一个二维分片，实现对定时任务有序表的隔离；&lt;/li>
+&lt;li>后续步骤与 第三小节 一致&lt;/li>
+&lt;/ol>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109155204-yewpnms.png"
+width="1080"
+height="367"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109155204-yewpnms_hu3cc43b08a18566b61b5107364f7676a5_108082_480x0_resize_box_3.png 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109155204-yewpnms_hu3cc43b08a18566b61b5107364f7676a5_108082_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="image"
+class="gallery-image"
+data-flex-grow="294"
+data-flex-basis="706px"
+>​&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;hr>
+&lt;h1 id="xtimer-架构分析">xTimer 架构分析&lt;/h1>
+&lt;p>作者开源项目地址：&lt;a class="link" href="https://github.com/xiaoxuxiansheng/xtimer" target="_blank" rel="noopener"
+>github.com/xiaoxuxianshe&amp;hellip;&lt;/a>&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="0-自己看源码分析">0. 自己看源码分析&lt;/h2>
+&lt;p>画出了一个大致的草图，分析了 Scheduler、Trigger、Executer 三者的关联：&lt;/p>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20231110160900-20231110160914-a3pwqix.jpg"
+width="2622"
+height="1280"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20231110160900-20231110160914-a3pwqix_huc4be4793f0d82c295ba1f202540062b3_526933_480x0_resize_q75_box.jpg 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20231110160900-20231110160914-a3pwqix_huc4be4793f0d82c295ba1f202540062b3_526933_1024x0_resize_q75_box.jpg 1024w"
+loading="lazy"
+alt="微信图片_20231110160900"
+class="gallery-image"
+data-flex-grow="204"
+data-flex-basis="491px"
+>&lt;/p>
+&lt;p>这三个模块是 xTimer 的核心，其余的组件（webserver、Logger、migrator）都是基于它们的关系进行处理的。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>三个模块通过 Ants 协程池相互关联，达到协调工作的效果。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="1-架构设计">1. 架构设计&lt;/h2>
+&lt;h3 id="定时任务调度流程">定时任务调度流程&lt;/h3>
+&lt;p>根据上面的分析，定时任务模块至少包含“调度器”、“触发器”、“执行器”。&lt;/p>
+&lt;p>而由于我们是单机任务，3 个模块都在同一个机器里面，所以我们可以利用 golang 的协程串联 3 个模块。使用“协程池”可以进一步优化协程的利用效率。&lt;/p>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109160017-6mw42d7.png"
+width="1080"
+height="516"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109160017-6mw42d7_hu3feb121e32c60c185896a118ff493c0c_347576_480x0_resize_box_3.png 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109160017-6mw42d7_hu3feb121e32c60c185896a118ff493c0c_347576_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="image"
+class="gallery-image"
+data-flex-grow="209"
+data-flex-basis="502px"
+>​&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>3 个模块 + 2 个协程池&lt;/strong>&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;hr>
+&lt;h1 id="优秀代码设计">优秀代码设计&lt;/h1>
+&lt;blockquote>
+&lt;p>以下对项目中某些代码片段进行着重分析，重点学习作者的设计思路&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="1-每个模块依次启动">1. 每个模块依次启动&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">w&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Worker&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">Start&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span> &lt;span class="nx">context&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Context&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kt">error&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">trigger&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Start&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">ticker&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">NewTicker&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">appConfProvider&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Get&lt;/span>&lt;span class="p">().&lt;/span>&lt;span class="nx">TryLockGapMilliSeconds&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Millisecond&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">defer&lt;/span> &lt;span class="nx">ticker&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Stop&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="k">range&lt;/span> &lt;span class="nx">ticker&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">C&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">select&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Done&lt;/span>&lt;span class="p">():&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">WarnContext&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s">&amp;#34;stopped&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">nil&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">default&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">handleSlices&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">nil&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这是在 Scheduler 模块的 Start 方法，它随后调用 Trigger 的 Start：&lt;/p>
+&lt;ul>
+&lt;li>w.trigger.Start(ctx)&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>Trigger 之后，也调用 Executor 的 Start 方法：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">w&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Worker&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">Start&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span> &lt;span class="nx">context&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Context&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">executor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Start&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>然后 Executor 的 Start 方法调用 &lt;code>TimerService&lt;/code>​ 的 Start 方法：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">w&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Worker&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">Start&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span> &lt;span class="nx">context&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Context&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">timerService&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Start&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>由上，我们再结合之前的架构图：&lt;/p>
+&lt;blockquote>
+&lt;p>​&lt;img src="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109160017-6mw42d7.png"
+width="1080"
+height="516"
+srcset="https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109160017-6mw42d7_hu3feb121e32c60c185896a118ff493c0c_347576_480x0_resize_box_3.png 480w, https://hildam.github.io/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/assets/image-20231109160017-6mw42d7_hu3feb121e32c60c185896a118ff493c0c_347576_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="image"
+class="gallery-image"
+data-flex-grow="209"
+data-flex-basis="502px"
+>​&lt;/p>
+&lt;/blockquote>
+&lt;p>‍&lt;/p>
+&lt;p>便可梳理出整体的模块调用链：&lt;code>Scheduler -&amp;gt; Trigger -&amp;gt; Executor -&amp;gt; TimeService&lt;/code>​&lt;/p>
+&lt;p>这同时也进一步体现在每个 Struct 结构体的设计上：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Scheduler 包含着 Trigger&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">Worker&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">pool&lt;/span> &lt;span class="nx">pool&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">WorkerPool&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">appConfProvider&lt;/span> &lt;span class="nx">appConfProvider&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">trigger&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">trigger&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Worker&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">lockService&lt;/span> &lt;span class="nx">lockService&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">bucketGetter&lt;/span> &lt;span class="nx">bucketGetter&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">minuteBuckets&lt;/span> &lt;span class="kd">map&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="kt">string&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="kt">int&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>Trigger 包含着 Executor&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">Worker&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">task&lt;/span> &lt;span class="nx">taskService&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">confProvider&lt;/span> &lt;span class="nx">confProvider&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">pool&lt;/span> &lt;span class="nx">pool&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">WorkerPool&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">executor&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">executor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Worker&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">lockService&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">redis&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Client&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>Executor 包含着 TimeService&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">Worker&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">timerService&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">TimerService&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">taskDAO&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">taskdao&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">TaskDAO&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">httpClient&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">xhttp&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">JSONClient&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">bloomFilter&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">bloom&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Filter&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">reporter&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">promethus&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Reporter&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="2-trigger-核心逻辑分析--如何书写优秀的并发逻辑">2. Trigger 核心逻辑分析 —— 如何书写优秀的并发逻辑&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;span class="lnt">38
+&lt;/span>&lt;span class="lnt">39
+&lt;/span>&lt;span class="lnt">40
+&lt;/span>&lt;span class="lnt">41
+&lt;/span>&lt;span class="lnt">42
+&lt;/span>&lt;span class="lnt">43
+&lt;/span>&lt;span class="lnt">44
+&lt;/span>&lt;span class="lnt">45
+&lt;/span>&lt;span class="lnt">46
+&lt;/span>&lt;span class="lnt">47
+&lt;/span>&lt;span class="lnt">48
+&lt;/span>&lt;span class="lnt">49
+&lt;/span>&lt;span class="lnt">50
+&lt;/span>&lt;span class="lnt">51
+&lt;/span>&lt;span class="lnt">52
+&lt;/span>&lt;span class="lnt">53
+&lt;/span>&lt;span class="lnt">54
+&lt;/span>&lt;span class="lnt">55
+&lt;/span>&lt;span class="lnt">56
+&lt;/span>&lt;span class="lnt">57
+&lt;/span>&lt;span class="lnt">58
+&lt;/span>&lt;span class="lnt">59
+&lt;/span>&lt;span class="lnt">60
+&lt;/span>&lt;span class="lnt">61
+&lt;/span>&lt;span class="lnt">62
+&lt;/span>&lt;span class="lnt">63
+&lt;/span>&lt;span class="lnt">64
+&lt;/span>&lt;span class="lnt">65
+&lt;/span>&lt;span class="lnt">66
+&lt;/span>&lt;span class="lnt">67
+&lt;/span>&lt;span class="lnt">68
+&lt;/span>&lt;span class="lnt">69
+&lt;/span>&lt;span class="lnt">70
+&lt;/span>&lt;span class="lnt">71
+&lt;/span>&lt;span class="lnt">72
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">w&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Worker&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">Work&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span> &lt;span class="nx">context&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Context&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">minuteBucketKey&lt;/span> &lt;span class="kt">string&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">ack&lt;/span> &lt;span class="kd">func&lt;/span>&lt;span class="p">())&lt;/span> &lt;span class="kt">error&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;trigger_1 start: %v&amp;#34;, time.Now())
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// defer func() {
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;trigger_1 end: %v&amp;#34;, time.Now())
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// }()
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 进行为时一分钟的 zrange 处理
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nf">getStartMinute&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">minuteBucketKey&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">err&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">conf&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">confProvider&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Get&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">ticker&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">NewTicker&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conf&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ZRangeGapSeconds&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Second&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">defer&lt;/span> &lt;span class="nx">ticker&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Stop&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">endTime&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Minute&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">notifier&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">concurrency&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">NewSafeChan&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nb">int&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Minute&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conf&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ZRangeGapSeconds&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Second&lt;/span>&lt;span class="p">))&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">defer&lt;/span> &lt;span class="nx">notifier&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Close&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">wg&lt;/span> &lt;span class="nx">sync&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">WaitGroup&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="kd">func&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;trigger_2 start: %v&amp;#34;, time.Now())
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// defer func() {
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;trigger_2 end: %v&amp;#34;, time.Now())
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// }()
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">defer&lt;/span> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Done&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">handleBatch&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">minuteBucketKey&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conf&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ZRangeGapSeconds&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Second&lt;/span>&lt;span class="p">));&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">notifier&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Put&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">err&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="k">range&lt;/span> &lt;span class="nx">ticker&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">C&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">select&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="nx">e&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">notifier&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">GetChan&lt;/span>&lt;span class="p">():&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">err&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">_&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">e&lt;/span>&lt;span class="p">.(&lt;/span>&lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">err&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">default&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">startTime&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conf&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ZRangeGapSeconds&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Second&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Equal&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">endTime&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">||&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">After&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">endTime&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">break&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;start time: %v&amp;#34;, startTime)
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">go&lt;/span> &lt;span class="kd">func&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">startTime&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Time&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;trigger_2 start: %v&amp;#34;, time.Now())
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// defer func() {
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// log.InfoContextf(ctx, &amp;#34;trigger_2 end: %v&amp;#34;, time.Now())
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="c1">// }()
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">defer&lt;/span> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Done&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">handleBatch&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">minuteBucketKey&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conf&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ZRangeGapSeconds&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Second&lt;/span>&lt;span class="p">));&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">notifier&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Put&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">err&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}(&lt;/span>&lt;span class="nx">startTime&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">wg&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Wait&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">select&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">case&lt;/span> &lt;span class="nx">e&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="o">&amp;lt;-&lt;/span>&lt;span class="nx">notifier&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">GetChan&lt;/span>&lt;span class="p">():&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">err&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">_&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">e&lt;/span>&lt;span class="p">.(&lt;/span>&lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">err&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">default&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">ack&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">InfoContextf&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s">&amp;#34;ack success, key: %s&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">minuteBucketKey&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kc">nil&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;h3 id="为什么在循环-for-range-tickerc-还需要创建一个-go-func-协程这个协程做的事情与-for-range-tickerc-循环做的事情基本一致这样的设计究竟是为了什么">为什么在循环 &lt;code>for range ticker.C&lt;/code>​ 还需要创建一个 &lt;code>go func()&lt;/code>​ 协程。这个协程做的事情与 &lt;code>for range ticker.C&lt;/code>​ 循环做的事情基本一致，这样的设计究竟是为了什么？&lt;/h3>
+&lt;p>为了确保调用函数后，go 协程的逻辑会立即得到执行。&lt;/p>
+&lt;p>​&lt;code>for range ticker.C&lt;/code>​ 循环中的逻辑，并不会在调用 trigger.Work 后会立即执行。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h3 id="循环-for-range-tickerc-分析">循环 &lt;code>for range ticker.C&lt;/code>​ 分析&lt;/h3>
+&lt;p>每一个 for range 循环都创建一个 协程，执行批量处理的操作。每一次循环都有一个 select 监控管道，确保任何一个协程出现错误后，立即返回错误。&lt;/p>
+&lt;p>同时，这个 select 会监听 2 个 channel 的信息：ticker 和 业务协程&lt;/p>
+&lt;p>&lt;code>for range ticker.C&lt;/code>​ 循环确实会在每次迭代时阻塞，直到 &lt;code>ticker&lt;/code>​ 通道接收到下一个时间点的信号。这是定时器 &lt;code>time.Ticker&lt;/code>​ 的典型用法，用于在固定的时间间隔触发操作。具体来说：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>&lt;strong>定时器的作用&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>​&lt;code>ticker := time.NewTicker(time.Duration(conf.ZRangeGapSeconds) * time.Second)&lt;/code>​ 创建了一个定时器 &lt;code>ticker&lt;/code>​，它会在设定的间隔（&lt;code>conf.ZRangeGapSeconds&lt;/code>​ 秒）后向其通道 &lt;code>ticker.C&lt;/code>​ 发送时间信号。&lt;/li>
+&lt;li>每次 &lt;code>ticker.C&lt;/code>​ 接收到信号时，&lt;code>for range ticker.C&lt;/code>​ 循环就会进行下一次迭代。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>阻塞行为&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>在 &lt;code>for range ticker.C&lt;/code>​ 循环中，每次迭代都会等待直到 &lt;code>ticker.C&lt;/code>​ 通道接收到下一个时间点的信号。这意味着循环的每次迭代之间会有一个固定的时间间隔，这个间隔由 &lt;code>ticker&lt;/code>​ 的设置决定。&lt;/li>
+&lt;li>在等待 &lt;code>ticker.C&lt;/code>​ 通道的过程中，确实会发生阻塞。但这是有意为之的，以确保按照预定的时间间隔执行操作。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>​**&lt;code>select&lt;/code>&lt;strong>​ ** 语句的作用&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>在循环内部的 &lt;code>select&lt;/code>​ 语句块用于检查是否有来自 &lt;code>notifier.GetChan()&lt;/code>​ 的错误信号。这是一个非阻塞的检查，因为包含了 &lt;code>default&lt;/code>​ 分支。&lt;/li>
+&lt;li>如果 &lt;code>notifier&lt;/code>​ 通道中有错误，它会立即被处理并返回。如果没有错误，&lt;code>default&lt;/code>​ 分支会执行，循环继续到下一次迭代。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol>
+&lt;p>‍&lt;/p>
+&lt;p>同时 ticket.C 只要不显式停止，它就会一直执行下去。在 for 函数内，只要执行时间达到 endTime 的时候，就会被停止，跳出循环！&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">startTime&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Add&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Duration&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conf&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ZRangeGapSeconds&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="nx">time&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Second&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Equal&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">endTime&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">||&lt;/span> &lt;span class="nx">startTime&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">After&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">endTime&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">break&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>执行时间间隔为一分钟&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;h3 id="ack-前的-select-代码块的作用gpt4">ack() 前的 select 代码块的作用（gpt4）&lt;/h3>
+&lt;p>代码最后的 &lt;code>select&lt;/code>​ 语句块起着关键作用，特别是在处理并发操作和错误管理方面。具体来说：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>&lt;strong>错误处理&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>这个 &lt;code>select&lt;/code>​ 语句块用于检查 &lt;code>notifier.GetChan()&lt;/code>​ 通道，以判断是否有来自并发执行的协程的错误。&lt;/li>
+&lt;li>如果某个协程在执行 &lt;code>w.handleBatch&lt;/code>​ 函数时遇到错误并通过 &lt;code>notifier.Put(err)&lt;/code>​ 发送了一个错误，那么这个错误会被放入 &lt;code>notifier&lt;/code>​ 的通道中。&lt;/li>
+&lt;li>当 &lt;code>select&lt;/code>​ 语句块执行时，它会从 &lt;code>notifier.GetChan()&lt;/code>​ 通道中接收错误。如果通道中有错误，那么这个错误会被赋值给 &lt;code>err&lt;/code>​ 变量，并由函数返回，从而传播错误。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>确保所有协程完成&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>在这之前的 &lt;code>wg.Wait()&lt;/code>​ 调用确保了在继续之前，所有由 &lt;code>Work&lt;/code>​ 函数启动的协程都已经完成了它们的工作。&lt;/li>
+&lt;li>在所有协程完成之后，再次检查 &lt;code>notifier&lt;/code>​ 通道是为了确保在协程执行过程中产生的任何错误都被捕获和处理。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>非阻塞检查&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>使用 &lt;code>select&lt;/code>​ 的 &lt;code>default&lt;/code>​ 分支确保了这个错误检查是非阻塞的。如果 &lt;code>notifier&lt;/code>​ 通道中没有错误，代码就会执行 &lt;code>default&lt;/code>​ 分支，这避免了函数在此处无限期地等待。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>干净的退出&lt;/strong>：&lt;/p>
+&lt;ul>
+&lt;li>如果所有协程都成功执行并且没有错误，那么这个 &lt;code>select&lt;/code>​ 语句就不会捕获任何错误，函数将继续执行 &lt;code>ack()&lt;/code>​ 调用和后续的日志记录，然后正常返回。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="3-golang-闭包函数在循环中的踩坑--变量拷贝问题">3. golang 闭包函数在循环中的踩坑 —— 变量拷贝问题&lt;/h2>
+&lt;p>在Go语言中，闭包（即函数内定义的匿名函数）会捕获其外部函数的变量。当这些闭包在并发环境（如多个协程）中执行时，就可能出现并发问题，尤其是当这些闭包共享对外部变量的访问时。&lt;/p>
+&lt;p>在之前的代码示例中，有一段这样的代码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="k">for&lt;/span> &lt;span class="nx">_&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">task&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="k">range&lt;/span> &lt;span class="nx">tasks&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">task&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">task&lt;/span> &lt;span class="c1">// 重要的局部变量复制
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">w&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">pool&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Submit&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">func&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ... 使用 task
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">});&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">err&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这里的关键点在于&lt;code>task := task&lt;/code>​这行代码。它的作用及其重要性：&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>闭包和外部变量&lt;/strong>：在for循环中，匿名函数（即闭包）是通过&lt;code>w.pool.Submit&lt;/code>​提交并可能在不同的协程上执行的。这个闭包引用了循环变量&lt;code>task&lt;/code>​。&lt;/li>
+&lt;li>&lt;strong>变量捕获的工作原理&lt;/strong>：&lt;strong>闭包不会为它引用的每次迭代创建&lt;/strong>&lt;code>**task**&lt;/code>&lt;strong>的独立副本。相反，所有迭代共享同一个&lt;/strong>&lt;code>**task**&lt;/code>&lt;strong>变量。这意味着闭包内部对&lt;/strong>&lt;code>**task**&lt;/code>&lt;strong>的引用在迭代时会改变。&lt;/strong>&lt;/li>
+&lt;li>&lt;strong>并发问题的产生&lt;/strong>：如果没有局部变量复制，所有的闭包将引用相同的&lt;code>task&lt;/code>​变量。由于这些闭包可能在不同的协程中并发执行，因此当&lt;code>task&lt;/code>​在循环的下一次迭代中更新时，已经在执行中的闭包看到的&lt;code>task&lt;/code>​值也会改变。&lt;strong>这会导致所有闭包最终可能都使用最后一次迭代的&lt;/strong>&lt;code>**task**&lt;/code>&lt;strong>值，而不是它们各自迭代时的值。&lt;/strong>&lt;/li>
+&lt;li>&lt;strong>局部变量复制的作用&lt;/strong>：通过&lt;code>task := task&lt;/code>​，每次迭代都会创建&lt;code>task&lt;/code>​的一个新副本。这样，每个闭包都捕获了这个副本而不是共享的循环变量。因此，即使外部循环继续进行并更新&lt;code>task&lt;/code>​变量，每个闭包中捕获的副本值都不会改变。&lt;/li>
+&lt;li>&lt;strong>不这么做的后果&lt;/strong>：如果不进行局部变量复制，所有并发执行的闭包可能都会错误地使用相同的（最后一次迭代的）&lt;code>task&lt;/code>​值，导致数据不一致、错误的行为或其他难以追踪的并发相关的bug。&lt;/li>
+&lt;/ol>
+&lt;p>‍&lt;/p>
+&lt;p>简而言之，&lt;code>task := task&lt;/code>​这种做法是确保闭包在并发执行时能安全使用迭代变量的一种重要且有效的技术。它避免了并发执行时由于变量共享导致的潜在问题，是Go语言并发编程中的一个常见且重要的模式。&lt;/p>
+&lt;p>‍&lt;/p></description></item><item><title>golang 依赖注入</title><link>https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/</link><pubDate>Fri, 10 Nov 2023 09:57:06 +0800</pubDate><guid>https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/</guid><description>&lt;img src="https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT.jpg" alt="Featured image of post golang 依赖注入" />&lt;h1 id="golang-依赖注入">golang 依赖注入&lt;/h1>
+&lt;h1 id="依赖注入的需求">依赖注入的需求&lt;/h1>
+&lt;p>有些时候我们想要在使用 golang 的时候，无需关注对象创建的细节，希望随取随用。&lt;/p>
+&lt;p>不过之前 Java 开发的时候，太过依赖于 Spring 了，以至于在 golang 的时候还是得靠框架实现，依赖注入自己不会手写。。。&lt;/p>
+&lt;p>经阅读相关优先项目发现，大部分人都是用了 Uber 的 dig 开源框架，轻松在 golang 中实现“依赖注入”&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h1 id="dig-的核心用法">dig 的核心用法&lt;/h1>
+&lt;h2 id="container">Container&lt;/h2>
+&lt;p>dig 的 Container 即为“容器”，相当于 Spring 中“管理依赖的容器”。&lt;/p>
+&lt;p>通过 New() 方法创建：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">container&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">New&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;h2 id="provide">Provide&lt;/h2>
+&lt;p>我们需要告诉 dig 框架“对象的创建方法”，这样当我们需要某个对象的时候，它能够“调用这个对象的构造函数”。&lt;/p>
+&lt;p>&lt;em>Provide&lt;/em> 方法接收一个构造器函数作为参数，该函数负责具体数据类型的创建和初始化，并将其返回。如果待创建的数据类型依赖其他类型，可以将依赖作为构造函数参数来声明。&lt;/p>
+&lt;p>所有依赖的构造器函数也必须注册进 &lt;em>Container&lt;/em> ，但顺序没有严格要求&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>Provide 的入参条件很灵活：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Provide accepts argument types or dig.In structs as dependencies, and
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// separate return values or dig.Out structs for results.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">func&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">c&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Container&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">constructor&lt;/span> &lt;span class="kd">interface&lt;/span>&lt;span class="p">{},&lt;/span> &lt;span class="nx">opts&lt;/span> &lt;span class="o">...&lt;/span>&lt;span class="nx">ProvideOption&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="kt">error&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">scope&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">constructor&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">opts&lt;/span>&lt;span class="o">...&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>不过“构造函数”必须返回一个对象的本身，否则不能创建成功：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">provideApp&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">c&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Container&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">......&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">monitor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">NewMonitorApp&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewMonitorApp&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">worker&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">service&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Worker&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">MonitorApp&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">m&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">MonitorApp&lt;/span>&lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">worker&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nx">worker&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">m&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ctx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">m&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">stop&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">context&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">WithCancel&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">context&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Background&lt;/span>&lt;span class="p">())&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="o">&amp;amp;&lt;/span>&lt;span class="nx">m&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>向 Provide 提供 MonitorApp 的构造函数&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>当然，构造函数也可以声明“任意个依赖”：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">func&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">u&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">UserGateway&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">c&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">CommentGateway&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">RequestHandler&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这段代码注册了 *&lt;em>RequestHandler&lt;/em> 的构造函数，它有两个依赖，分别是 &lt;em>UserGateway&lt;/em> 和 &lt;em>CommentGateway&lt;/em> 。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>也可以返回“多个值”，完成多个类型的初始化：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">func&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">UserGateway&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">CommentGateway&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这段代码注册的构造函数，依赖数据库连接 *&lt;em>sql.DB&lt;/em> ，负责 &lt;em>UserGateway&lt;/em> 和 &lt;em>CommentGateway&lt;/em> 的创建工作。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>构造函数可以接收可变参数，但 &lt;em>dig&lt;/em> 执行时不会为其传参：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewVoteGateway&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">db&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">options&lt;/span> &lt;span class="o">...&lt;/span>&lt;span class="nx">Option&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">VoteGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="invoke">Invoke&lt;/h2>
+&lt;p>Invoke 方法在我们需要使用“对象”的时候，向 Container 发起请求，获取对象。&lt;/p>
+&lt;p>跟 &lt;em>Provide&lt;/em> 一样，Invoke 方法也接收一个函数作为参数。函数通过参数指定要请求的数据类型，&lt;em>dig&lt;/em> 负责创建这些类型，并执行该函数：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Invoke&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">func&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">l&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Logger&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">})&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>这段代码调用 Invoke 方法请求日志对象 *&lt;em>log.Logger&lt;/em> ，&lt;/li>
+&lt;li>&lt;em>dig&lt;/em> 先完成 *&lt;em>log.Logger&lt;/em> 的创建工作，并将其传给该函数。&lt;/li>
+&lt;li>匿名函数里可以执行任何需要用到 *&lt;em>log.Logger&lt;/em> 的处理逻辑，或者将其记下后再其他地方使用。&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>在匿名函数中，我们可以将创建好的方法取出来：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">GetMonitorApp&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">monitor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">MonitorApp&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">var&lt;/span> &lt;span class="nx">monitorApp&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">monitor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">MonitorApp&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nx">container&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Invoke&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">func&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">_m&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">monitor&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">MonitorApp&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">monitorApp&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">_m&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">});&lt;/span> &lt;span class="nx">err&lt;/span> &lt;span class="o">!=&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">panic&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">err&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">monitorApp&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;h2 id="多依赖多输出的处理">多依赖、多输出的处理&lt;/h2>
+&lt;p>如果构造一个对象，需要多个依赖；或者构造函数的返回值有多个对象的话，那么就会造成 Provide 入参和出参的臃肿，参数列表很长，可读性差。&lt;/p>
+&lt;p>我们可以使用“结构体”来管理这些多对象的情况，这些结构体只要“组合”了 &lt;code>dig.In&lt;/code>​ 和 &lt;code>dig.Out&lt;/code>​，就能被 Provide 所识别。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h3 id="参数对象">参数对象&lt;/h3>
+&lt;p>任何结构体只要嵌入 &lt;em>dig.In&lt;/em> 即视为参数对象&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">HandlerParams&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Users&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">UserGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Comments&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">CommentGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Posts&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">PostGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Votes&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">VoteGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">AuthZ&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">AuthZGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewHandler&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">p&lt;/span> &lt;span class="nx">HandlerParams&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Handler&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>构造函数支持同时接受参数对象和普通参数，可以任意组合：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewHandler&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">p&lt;/span> &lt;span class="nx">HandlerParams&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">l&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Logger&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Handler&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;h3 id="结果对象">结果对象&lt;/h3>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">Gateways&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Out&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Users&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">UserGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Comments&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">CommentGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Posts&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">PostGateway&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">SetupGateways&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">conn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">Gateways&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>这个构造器负责创建 *&lt;em>UserGateway&lt;/em> 、*&lt;em>CommentGateway&lt;/em> 和 *&lt;em>PostGateway&lt;/em> ，可以使用结果对象改写成这样&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;h3 id="可选依赖">可选依赖&lt;/h3>
+&lt;p>使用“结构体”管理后，可以很轻松解决“某些依赖”不存在的情况。&lt;/p>
+&lt;p>如果说某些依赖不存在，可以构造一个“不完美”的对象，在没有使用“参数对象”的时候，需要构造多个函数来实现。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>在某些场景下，就算依赖缺失，组件也可降级工作。因此，组件构造函数不用强制依赖其他类型。&lt;em>dig&lt;/em> 支持声明可选依赖，只要在参数对象相关字段上打上 &lt;code>optional:&amp;quot;true&amp;quot;&lt;/code>​ 标签即可：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">UserGatewayParams&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Conn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Cache&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">redis&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Client&lt;/span> &lt;span class="s">`optional:&amp;#34;true&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>如果可选依赖字段在容器中不存在，构造函数会收到该字段的零值：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewUserGateway&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">p&lt;/span> &lt;span class="nx">UserGatewayParams&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">log&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Logger&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">UserGateway&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Cache&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;Logging disabled&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;h2 id="命名依赖">命名依赖&lt;/h2>
+&lt;p>某些使用场景可能会为同个数据类型初始化多个实例，例如数据库连接可分为只读和读写：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewReadOnlyConnection&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">...&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewReadWriteConnection&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">...&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;em>dig&lt;/em> 支持对实例值进行命名，将同个类型的多个不同实例加入容器。注册构造函数时可以传 &lt;em>dig.Name&lt;/em> 参数，告诉 &lt;em>dig&lt;/em> 对构造函数返回的实例值进行命名。如果构造函数返回多个值，每个值都会被命名。&lt;/p>
+&lt;p>我们将上述两个数据库连接构造函数注册到 &lt;em>dig&lt;/em> 容器，并通过可选参数 &lt;em>dig.Name&lt;/em> 将它们分别命名为 &lt;em>ro&lt;/em> 和 &lt;em>rw&lt;/em> ：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">NewReadOnlyConnection&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Name&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;ro&amp;#34;&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">c&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Provide&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">NewReadWriteConnection&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Name&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;rw&amp;#34;&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>另一种方式，在结果对象中为字段打上命名标签：&lt;code>name:&amp;quot;xxxx&amp;quot;&lt;/code>​ ，从而为实例值命名：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">ConnectionResult&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Out&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">ReadWrite&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span> &lt;span class="s">`name:&amp;#34;rw&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">ReadOnly&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span> &lt;span class="s">`name:&amp;#34;ro&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">ConnectToDatabase&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="o">...&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">ConnectionResult&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="nx">ConnectionResult&lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="nx">ReadWrite&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nx">rw&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">ReadOnly&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nx">ro&lt;/span>&lt;span class="p">},&lt;/span> &lt;span class="kc">nil&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>无论依赖用哪种方式命名，其他构建函数都可以通过参数对象准确获取。参数对象字段必须打上命名标签，指定要获取的依赖实例名，&lt;em>dig&lt;/em> 据此注入同名且同类型的实例对象：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">GatewayParams&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">WriteToConn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span> &lt;span class="s">`name:&amp;#34;rw&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">ReadFromConn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span> &lt;span class="s">`name:&amp;#34;ro&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>‍&lt;/p>
+&lt;p>命名标签和可选依赖标签可以组合使用，声明可选的命名依赖：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">GatewayParams&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">WriteToConn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span> &lt;span class="s">`name:&amp;#34;rw&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">ReadFromConn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">sql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">DB&lt;/span> &lt;span class="s">`name:&amp;#34;ro&amp;#34; optional:&amp;#34;true&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewCommentGateway&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">p&lt;/span> &lt;span class="nx">GatewayParams&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">log&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Logger&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="nx">CommentGateway&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">if&lt;/span> &lt;span class="nx">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ReadFromConn&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="kc">nil&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">log&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;Warning: Using RW connection for reads&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ReadFromConn&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nx">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">WriteToConn&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ...
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>&lt;em>CommentGateway&lt;/em> 的依赖由参数对象 &lt;em>GatewayParams&lt;/em> 声明，它依赖两个数据库连接对象，一个是可读可写，另一个是只读的。注意到，只读连接是可选的，只读连接缺失则直接使用读写连接。&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;h2 id="实例组">实例组&lt;/h2>
+&lt;p>为实现同一类型的多实例构建或消费，dig 引入了实例组（ &lt;em>value group&lt;/em> ）的概念。实例组是容器内部的一个乱序命名集合，构造函数可以往该集合添加实例值，而其他构造函数可以请求集合中的所有实例，结果以 &lt;strong>切片&lt;/strong>（ slice ）的形式返回。&lt;/p>
+&lt;p>构造函数只要返回打上 &lt;code>group:&amp;quot;xxxx&amp;quot;&lt;/code>​ 标签的 &lt;em>dig.Out&lt;/em> 结果对象，相关字段就会被添加到实例组&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">HandlerResult&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Out&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Handler&lt;/span> &lt;span class="nx">Handler&lt;/span> &lt;span class="s">`group:&amp;#34;server&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewHelloHandler&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="nx">HandlerResult&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">..&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewEchoHandler&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="nx">HandlerResult&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">..&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这段代码中两个构造函数注册后，&lt;em>dig&lt;/em> 会将它们创建的 &lt;em>Handler&lt;/em> 实例值添加到名为 &lt;em>server&lt;/em> 的实例组。&lt;/p>
+&lt;p>可能有任意多的构造函数往该命名组添加实例，而且其他构造函数借助同样打上 &lt;code>group:&amp;quot;xxxx&amp;quot;&lt;/code>​ 标签的切片字段，即可请求全部实例值：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">ServerParams&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">In&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Handlers&lt;/span> &lt;span class="p">[]&lt;/span>&lt;span class="nx">Handler&lt;/span> &lt;span class="s">`group:&amp;#34;server&amp;#34;`&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">func&lt;/span> &lt;span class="nf">NewServer&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">p&lt;/span> &lt;span class="nx">ServerParams&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="nx">Server&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">server&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="nf">newServer&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="nx">_&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">h&lt;/span> &lt;span class="o">:=&lt;/span> &lt;span class="k">range&lt;/span> &lt;span class="nx">p&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Handlers&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">server&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Register&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">h&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">server&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>&lt;em>Server&lt;/em> 构造函数参数对象通过 &lt;em>Handler&lt;/em> 字段请求 &lt;em>server&lt;/em> 组中的所有 &lt;em>Handler&lt;/em> 实例。&lt;em>dig&lt;/em> 会先执行所有向该实例组添加实例值的构造函数，但执行顺序没有明确规定。&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p>
+&lt;blockquote>
+&lt;p>实例组中的实例值是无序的，因为这些实例值的构建函数以什么顺序执行，&lt;em>dig&lt;/em> 不作任何保证。&lt;/p>
+&lt;/blockquote>
+&lt;p>‍&lt;/p>
+&lt;p>在某些场景，我们可能需要在 &lt;em>dig.Out&lt;/em> 中添加切片字段，以便同时向实例值添加多个值。然而，考虑到实例组必须通过切片来请求的原则，我们只能通过切片的切片来获取这些实例值。&lt;/p>
+&lt;p>‍&lt;/p>
+&lt;p>好在 &lt;em>v1.9.0&lt;/em> 版本后，&lt;em>dig&lt;/em> 支持将切片中的元素逐个加入实例值，而不是将切片本身。想要实现这种效果，只需要为 &lt;em>group&lt;/em> 标签打上 flatten 修饰语即可：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">type&lt;/span> &lt;span class="nx">IntResult&lt;/span> &lt;span class="kd">struct&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">dig&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Out&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">Handler&lt;/span> &lt;span class="p">[]&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="s">`group:&amp;#34;server&amp;#34;`&lt;/span> &lt;span class="c1">// [][]int from dig.In
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">Handler&lt;/span> &lt;span class="p">[]&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="s">`group:&amp;#34;server,flatten&amp;#34;`&lt;/span> &lt;span class="c1">// []int from dig.In
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>第 &lt;em>4&lt;/em> 行将切片本身添加进实例组，必须通过切片的切片（ &lt;code>[][]int&lt;/code>​ ）来获取；&lt;/li>
+&lt;li>第 &lt;em>5&lt;/em> 行将切片中的元素逐一加入实例组，通过实例切片（ &lt;code>[]int&lt;/code>​ ）获取即可；&lt;/li>
+&lt;/ul>
+&lt;p>‍&lt;/p></description></item></channel></rss>

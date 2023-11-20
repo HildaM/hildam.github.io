@@ -1,0 +1,314 @@
+<!doctype html><html lang=en dir=ltr><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Uber dig 依赖注入框架学习"><title>golang 依赖注入</title>
+<link rel=canonical href=https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/><link rel=stylesheet href=/scss/style.min.abbd69b2908fdfcd5179898beaafd374514a86538d81639ddd2c58c06ae54e40.css><meta property="og:title" content="golang 依赖注入"><meta property="og:description" content="Uber dig 依赖注入框架学习"><meta property="og:url" content="https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/"><meta property="og:site_name" content="HildaM"><meta property="og:type" content="article"><meta property="article:section" content="Post"><meta property="article:published_time" content="2023-11-10T09:57:06+08:00"><meta property="article:modified_time" content="2023-11-10T09:57:06+08:00"><meta property="og:image" content="https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT.jpg"><meta name=twitter:title content="golang 依赖注入"><meta name=twitter:description content="Uber dig 依赖注入框架学习"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://hildam.github.io/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT.jpg"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/2023_hu3ae23303b8bc702850a9e46930b94ec7_600573_300x0_resize_box_3.png width=300 height=329 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>HildaM</a></h1><h2 class=site-description>Software Engineer. Java, Golang.....</h2></div></header><ol class=social-menu><li><a href=https://github.com/HildaM target=_blank title=GitHub rel=me><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg><span>Home</span></a></li><li><a href=/archives/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg><span>Archives</span></a></li><li><a href=/search/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg><span>Search</span></a></li><li><a href=/links/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg><span>Links</span></a></li><li><a href=/%E5%85%B3%E4%BA%8E%E6%88%91/><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg><span>关于我</span></a></li><div class=menu-bottom-section><li id=dark-mode-toggle><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg><span>Dark Mode</span></li></div></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#container>Container</a></li><li><a href=#provide>Provide</a></li><li><a href=#invoke>Invoke</a></li><li><a href=#多依赖多输出的处理>多依赖、多输出的处理</a><ol><li><a href=#参数对象>参数对象</a></li><li><a href=#结果对象>结果对象</a></li><li><a href=#可选依赖>可选依赖</a></li></ol></li><li><a href=#命名依赖>命名依赖</a></li><li><a href=#实例组>实例组</a></li></ol></nav></div></section></aside><main class="main full-width"><article class="has-image main-article"><header class=article-header><div class=article-image><a href=/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/><img src=/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT_hu8b370bc56ba849f07817004841874d66_136981_800x0_resize_q75_box.jpg srcset="/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT_hu8b370bc56ba849f07817004841874d66_136981_800x0_resize_q75_box.jpg 800w, /p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/F-GFw9_bQAAbpnT_hu8b370bc56ba849f07817004841874d66_136981_1600x0_resize_q75_box.jpg 1600w" width=800 height=381 loading=lazy alt="Featured image of post golang 依赖注入"></a></div><div class=article-details><header class=article-category><a href=/categories/golang/>Golang
+</a><a href=/categories/%E6%8A%80%E6%9C%AF/ style=background-color:#2a9d8f;color:#fff>技术</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/golang-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/>golang 依赖注入</a></h2><h3 class=article-subtitle>Uber dig 依赖注入框架学习</h3></div><footer class=article-time><div><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg><time class=article-time--published>Nov 10, 2023</time></div><div><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><time class=article-time--reading>4 minute read</time></div></footer></div></header><section class=article-content><h1 id=golang-依赖注入>golang 依赖注入</h1><h1 id=依赖注入的需求>依赖注入的需求</h1><p>有些时候我们想要在使用 golang 的时候，无需关注对象创建的细节，希望随取随用。</p><p>不过之前 Java 开发的时候，太过依赖于 Spring 了，以至于在 golang 的时候还是得靠框架实现，依赖注入自己不会手写。。。</p><p>经阅读相关优先项目发现，大部分人都是用了 Uber 的 dig 开源框架，轻松在 golang 中实现“依赖注入”</p><p>‍</p><h1 id=dig-的核心用法>dig 的核心用法</h1><h2 id=container>Container</h2><p>dig 的 Container 即为“容器”，相当于 Spring 中“管理依赖的容器”。</p><p>通过 New() 方法创建：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=nx>container</span> <span class=o>:=</span> <span class=nx>dig</span><span class=p>.</span><span class=nf>New</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><h2 id=provide>Provide</h2><p>我们需要告诉 dig 框架“对象的创建方法”，这样当我们需要某个对象的时候，它能够“调用这个对象的构造函数”。</p><p><em>Provide</em> 方法接收一个构造器函数作为参数，该函数负责具体数据类型的创建和初始化，并将其返回。如果待创建的数据类型依赖其他类型，可以将依赖作为构造函数参数来声明。</p><p>所有依赖的构造器函数也必须注册进 <em>Container</em> ，但顺序没有严格要求</p><p>‍</p><p>Provide 的入参条件很灵活：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// Provide accepts argument types or dig.In structs as dependencies, and
+</span></span></span><span class=line><span class=cl><span class=c1>// separate return values or dig.Out structs for results.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>func</span> <span class=p>(</span><span class=nx>c</span> <span class=o>*</span><span class=nx>Container</span><span class=p>)</span> <span class=nf>Provide</span><span class=p>(</span><span class=nx>constructor</span> <span class=kd>interface</span><span class=p>{},</span> <span class=nx>opts</span> <span class=o>...</span><span class=nx>ProvideOption</span><span class=p>)</span> <span class=kt>error</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>	<span class=k>return</span> <span class=nx>c</span><span class=p>.</span><span class=nx>scope</span><span class=p>.</span><span class=nf>Provide</span><span class=p>(</span><span class=nx>constructor</span><span class=p>,</span> <span class=nx>opts</span><span class=o>...</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>不过“构造函数”必须返回一个对象的本身，否则不能创建成功：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>provideApp</span><span class=p>(</span><span class=nx>c</span> <span class=o>*</span><span class=nx>dig</span><span class=p>.</span><span class=nx>Container</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>	<span class=o>......</span>
+</span></span><span class=line><span class=cl>	<span class=nx>c</span><span class=p>.</span><span class=nf>Provide</span><span class=p>(</span><span class=nx>monitor</span><span class=p>.</span><span class=nx>NewMonitorApp</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewMonitorApp</span><span class=p>(</span><span class=nx>worker</span> <span class=o>*</span><span class=nx>service</span><span class=p>.</span><span class=nx>Worker</span><span class=p>)</span> <span class=o>*</span><span class=nx>MonitorApp</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>	<span class=nx>m</span> <span class=o>:=</span> <span class=nx>MonitorApp</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>		<span class=nx>worker</span><span class=p>:</span> <span class=nx>worker</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>	<span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>	<span class=nx>m</span><span class=p>.</span><span class=nx>ctx</span><span class=p>,</span> <span class=nx>m</span><span class=p>.</span><span class=nx>stop</span> <span class=p>=</span> <span class=nx>context</span><span class=p>.</span><span class=nf>WithCancel</span><span class=p>(</span><span class=nx>context</span><span class=p>.</span><span class=nf>Background</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>	<span class=k>return</span> <span class=o>&amp;</span><span class=nx>m</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li>向 Provide 提供 MonitorApp 的构造函数</li></ul><p>‍</p><p>‍</p><p>当然，构造函数也可以声明“任意个依赖”：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=nx>err</span> <span class=o>:=</span> <span class=nx>c</span><span class=p>.</span><span class=nf>Provide</span><span class=p>(</span><span class=kd>func</span><span class=p>(</span><span class=nx>u</span> <span class=o>*</span><span class=nx>UserGateway</span><span class=p>,</span> <span class=nx>c</span> <span class=o>*</span><span class=nx>CommentGateway</span><span class=p>)</span> <span class=p>(</span><span class=o>*</span><span class=nx>RequestHandler</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>})</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nx>err</span> <span class=o>!=</span> <span class=kc>nil</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这段代码注册了 *<em>RequestHandler</em> 的构造函数，它有两个依赖，分别是 <em>UserGateway</em> 和 <em>CommentGateway</em> 。</p><p>‍</p><p>‍</p><p>也可以返回“多个值”，完成多个类型的初始化：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=nx>err</span> <span class=o>:=</span> <span class=nx>c</span><span class=p>.</span><span class=nf>Provide</span><span class=p>(</span><span class=kd>func</span><span class=p>(</span><span class=nx>conn</span> <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span><span class=p>)</span> <span class=p>(</span><span class=o>*</span><span class=nx>UserGateway</span><span class=p>,</span> <span class=o>*</span><span class=nx>CommentGateway</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>})</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nx>err</span> <span class=o>!=</span> <span class=kc>nil</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这段代码注册的构造函数，依赖数据库连接 *<em>sql.DB</em> ，负责 <em>UserGateway</em> 和 <em>CommentGateway</em> 的创建工作。</p><p>‍</p><p>‍</p><p>构造函数可以接收可变参数，但 <em>dig</em> 执行时不会为其传参：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewVoteGateway</span><span class=p>(</span><span class=nx>db</span> <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span><span class=p>,</span> <span class=nx>options</span> <span class=o>...</span><span class=nx>Option</span><span class=p>)</span> <span class=o>*</span><span class=nx>VoteGateway</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>‍</p><h2 id=invoke>Invoke</h2><p>Invoke 方法在我们需要使用“对象”的时候，向 Container 发起请求，获取对象。</p><p>跟 <em>Provide</em> 一样，Invoke 方法也接收一个函数作为参数。函数通过参数指定要请求的数据类型，<em>dig</em> 负责创建这些类型，并执行该函数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=nx>err</span> <span class=o>:=</span> <span class=nx>c</span><span class=p>.</span><span class=nf>Invoke</span><span class=p>(</span><span class=kd>func</span><span class=p>(</span><span class=nx>l</span> <span class=o>*</span><span class=nx>log</span><span class=p>.</span><span class=nx>Logger</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>})</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=nx>err</span> <span class=o>!=</span> <span class=kc>nil</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li>这段代码调用 Invoke 方法请求日志对象 *<em>log.Logger</em> ，</li><li><em>dig</em> 先完成 *<em>log.Logger</em> 的创建工作，并将其传给该函数。</li><li>匿名函数里可以执行任何需要用到 *<em>log.Logger</em> 的处理逻辑，或者将其记下后再其他地方使用。</li></ul><p>‍</p><p>在匿名函数中，我们可以将创建好的方法取出来：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>GetMonitorApp</span><span class=p>()</span> <span class=o>*</span><span class=nx>monitor</span><span class=p>.</span><span class=nx>MonitorApp</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>	<span class=kd>var</span> <span class=nx>monitorApp</span> <span class=o>*</span><span class=nx>monitor</span><span class=p>.</span><span class=nx>MonitorApp</span>
+</span></span><span class=line><span class=cl>	<span class=k>if</span> <span class=nx>err</span> <span class=o>:=</span> <span class=nx>container</span><span class=p>.</span><span class=nf>Invoke</span><span class=p>(</span><span class=kd>func</span><span class=p>(</span><span class=nx>_m</span> <span class=o>*</span><span class=nx>monitor</span><span class=p>.</span><span class=nx>MonitorApp</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>		<span class=nx>monitorApp</span> <span class=p>=</span> <span class=nx>_m</span>
+</span></span><span class=line><span class=cl>	<span class=p>});</span> <span class=nx>err</span> <span class=o>!=</span> <span class=kc>nil</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>		<span class=nb>panic</span><span class=p>(</span><span class=nx>err</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>	<span class=p>}</span>
+</span></span><span class=line><span class=cl>	<span class=k>return</span> <span class=nx>monitorApp</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><h2 id=多依赖多输出的处理>多依赖、多输出的处理</h2><p>如果构造一个对象，需要多个依赖；或者构造函数的返回值有多个对象的话，那么就会造成 Provide 入参和出参的臃肿，参数列表很长，可读性差。</p><p>我们可以使用“结构体”来管理这些多对象的情况，这些结构体只要“组合”了 <code>dig.In</code>​ 和 <code>dig.Out</code>​，就能被 Provide 所识别。</p><p>‍</p><h3 id=参数对象>参数对象</h3><p>任何结构体只要嵌入 <em>dig.In</em> 即视为参数对象</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>HandlerParams</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>In</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>Users</span>    <span class=o>*</span><span class=nx>UserGateway</span>
+</span></span><span class=line><span class=cl>  <span class=nx>Comments</span> <span class=o>*</span><span class=nx>CommentGateway</span>
+</span></span><span class=line><span class=cl>  <span class=nx>Posts</span>    <span class=o>*</span><span class=nx>PostGateway</span>
+</span></span><span class=line><span class=cl>  <span class=nx>Votes</span>    <span class=o>*</span><span class=nx>VoteGateway</span>
+</span></span><span class=line><span class=cl>  <span class=nx>AuthZ</span>    <span class=o>*</span><span class=nx>AuthZGateway</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewHandler</span><span class=p>(</span><span class=nx>p</span> <span class=nx>HandlerParams</span><span class=p>)</span> <span class=o>*</span><span class=nx>Handler</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>构造函数支持同时接受参数对象和普通参数，可以任意组合：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewHandler</span><span class=p>(</span><span class=nx>p</span> <span class=nx>HandlerParams</span><span class=p>,</span> <span class=nx>l</span> <span class=o>*</span><span class=nx>log</span><span class=p>.</span><span class=nx>Logger</span><span class=p>)</span> <span class=o>*</span><span class=nx>Handler</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><h3 id=结果对象>结果对象</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>Gateways</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>Out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>Users</span>    <span class=o>*</span><span class=nx>UserGateway</span>
+</span></span><span class=line><span class=cl>  <span class=nx>Comments</span> <span class=o>*</span><span class=nx>CommentGateway</span>
+</span></span><span class=line><span class=cl>  <span class=nx>Posts</span>    <span class=o>*</span><span class=nx>PostGateway</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>SetupGateways</span><span class=p>(</span><span class=nx>conn</span> <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span><span class=p>)</span> <span class=p>(</span><span class=nx>Gateways</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li>这个构造器负责创建 *<em>UserGateway</em> 、*<em>CommentGateway</em> 和 *<em>PostGateway</em> ，可以使用结果对象改写成这样</li></ul><p>‍</p><h3 id=可选依赖>可选依赖</h3><p>使用“结构体”管理后，可以很轻松解决“某些依赖”不存在的情况。</p><p>如果说某些依赖不存在，可以构造一个“不完美”的对象，在没有使用“参数对象”的时候，需要构造多个函数来实现。</p><p>‍</p><p>在某些场景下，就算依赖缺失，组件也可降级工作。因此，组件构造函数不用强制依赖其他类型。<em>dig</em> 支持声明可选依赖，只要在参数对象相关字段上打上 <code>optional:"true"</code>​ 标签即可：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>UserGatewayParams</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>In</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>Conn</span>  <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span>
+</span></span><span class=line><span class=cl>  <span class=nx>Cache</span> <span class=o>*</span><span class=nx>redis</span><span class=p>.</span><span class=nx>Client</span> <span class=s>`optional:&#34;true&#34;`</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>如果可选依赖字段在容器中不存在，构造函数会收到该字段的零值：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewUserGateway</span><span class=p>(</span><span class=nx>p</span> <span class=nx>UserGatewayParams</span><span class=p>,</span> <span class=nx>log</span> <span class=o>*</span><span class=nx>log</span><span class=p>.</span><span class=nx>Logger</span><span class=p>)</span> <span class=p>(</span><span class=o>*</span><span class=nx>UserGateway</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=nx>p</span><span class=p>.</span><span class=nx>Cache</span> <span class=o>==</span> <span class=kc>nil</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>log</span><span class=p>.</span><span class=nf>Print</span><span class=p>(</span><span class=s>&#34;Logging disabled&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><h2 id=命名依赖>命名依赖</h2><p>某些使用场景可能会为同个数据类型初始化多个实例，例如数据库连接可分为只读和读写：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewReadOnlyConnection</span><span class=p>(</span><span class=o>...</span><span class=p>)</span> <span class=p>(</span><span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewReadWriteConnection</span><span class=p>(</span><span class=o>...</span><span class=p>)</span> <span class=p>(</span><span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><em>dig</em> 支持对实例值进行命名，将同个类型的多个不同实例加入容器。注册构造函数时可以传 <em>dig.Name</em> 参数，告诉 <em>dig</em> 对构造函数返回的实例值进行命名。如果构造函数返回多个值，每个值都会被命名。</p><p>我们将上述两个数据库连接构造函数注册到 <em>dig</em> 容器，并通过可选参数 <em>dig.Name</em> 将它们分别命名为 <em>ro</em> 和 <em>rw</em> ：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=nx>c</span><span class=p>.</span><span class=nf>Provide</span><span class=p>(</span><span class=nx>NewReadOnlyConnection</span><span class=p>,</span> <span class=nx>dig</span><span class=p>.</span><span class=nf>Name</span><span class=p>(</span><span class=s>&#34;ro&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=nx>c</span><span class=p>.</span><span class=nf>Provide</span><span class=p>(</span><span class=nx>NewReadWriteConnection</span><span class=p>,</span> <span class=nx>dig</span><span class=p>.</span><span class=nf>Name</span><span class=p>(</span><span class=s>&#34;rw&#34;</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>另一种方式，在结果对象中为字段打上命名标签：<code>name:"xxxx"</code>​ ，从而为实例值命名：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>ConnectionResult</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>Out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>ReadWrite</span> <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span> <span class=s>`name:&#34;rw&#34;`</span>
+</span></span><span class=line><span class=cl>  <span class=nx>ReadOnly</span>  <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span> <span class=s>`name:&#34;ro&#34;`</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>ConnectToDatabase</span><span class=p>(</span><span class=o>...</span><span class=p>)</span> <span class=p>(</span><span class=nx>ConnectionResult</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>return</span> <span class=nx>ConnectionResult</span><span class=p>{</span><span class=nx>ReadWrite</span><span class=p>:</span> <span class=nx>rw</span><span class=p>,</span> <span class=nx>ReadOnly</span><span class=p>:</span>  <span class=nx>ro</span><span class=p>},</span> <span class=kc>nil</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>无论依赖用哪种方式命名，其他构建函数都可以通过参数对象准确获取。参数对象字段必须打上命名标签，指定要获取的依赖实例名，<em>dig</em> 据此注入同名且同类型的实例对象：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>GatewayParams</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>In</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>WriteToConn</span>  <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span> <span class=s>`name:&#34;rw&#34;`</span>
+</span></span><span class=line><span class=cl>  <span class=nx>ReadFromConn</span> <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span> <span class=s>`name:&#34;ro&#34;`</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>‍</p><p>命名标签和可选依赖标签可以组合使用，声明可选的命名依赖：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>GatewayParams</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>In</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>WriteToConn</span>  <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span> <span class=s>`name:&#34;rw&#34;`</span>
+</span></span><span class=line><span class=cl>  <span class=nx>ReadFromConn</span> <span class=o>*</span><span class=nx>sql</span><span class=p>.</span><span class=nx>DB</span> <span class=s>`name:&#34;ro&#34; optional:&#34;true&#34;`</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewCommentGateway</span><span class=p>(</span><span class=nx>p</span> <span class=nx>GatewayParams</span><span class=p>,</span> <span class=nx>log</span> <span class=o>*</span><span class=nx>log</span><span class=p>.</span><span class=nx>Logger</span><span class=p>)</span> <span class=p>(</span><span class=o>*</span><span class=nx>CommentGateway</span><span class=p>,</span> <span class=kt>error</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=nx>p</span><span class=p>.</span><span class=nx>ReadFromConn</span> <span class=o>==</span> <span class=kc>nil</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>log</span><span class=p>.</span><span class=nf>Print</span><span class=p>(</span><span class=s>&#34;Warning: Using RW connection for reads&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nx>p</span><span class=p>.</span><span class=nx>ReadFromConn</span> <span class=p>=</span> <span class=nx>p</span><span class=p>.</span><span class=nx>WriteToConn</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li><em>CommentGateway</em> 的依赖由参数对象 <em>GatewayParams</em> 声明，它依赖两个数据库连接对象，一个是可读可写，另一个是只读的。注意到，只读连接是可选的，只读连接缺失则直接使用读写连接。</li></ul><p>‍</p><p>‍</p><h2 id=实例组>实例组</h2><p>为实现同一类型的多实例构建或消费，dig 引入了实例组（ <em>value group</em> ）的概念。实例组是容器内部的一个乱序命名集合，构造函数可以往该集合添加实例值，而其他构造函数可以请求集合中的所有实例，结果以 <strong>切片</strong>（ slice ）的形式返回。</p><p>构造函数只要返回打上 <code>group:"xxxx"</code>​ 标签的 <em>dig.Out</em> 结果对象，相关字段就会被添加到实例组</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>HandlerResult</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>Out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>Handler</span> <span class=nx>Handler</span> <span class=s>`group:&#34;server&#34;`</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewHelloHandler</span><span class=p>()</span> <span class=nx>HandlerResult</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=p>..</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewEchoHandler</span><span class=p>()</span> <span class=nx>HandlerResult</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=p>..</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这段代码中两个构造函数注册后，<em>dig</em> 会将它们创建的 <em>Handler</em> 实例值添加到名为 <em>server</em> 的实例组。</p><p>可能有任意多的构造函数往该命名组添加实例，而且其他构造函数借助同样打上 <code>group:"xxxx"</code>​ 标签的切片字段，即可请求全部实例值：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>ServerParams</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>In</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>Handlers</span> <span class=p>[]</span><span class=nx>Handler</span> <span class=s>`group:&#34;server&#34;`</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kd>func</span> <span class=nf>NewServer</span><span class=p>(</span><span class=nx>p</span> <span class=nx>ServerParams</span><span class=p>)</span> <span class=o>*</span><span class=nx>Server</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>server</span> <span class=o>:=</span> <span class=nf>newServer</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=nx>_</span><span class=p>,</span> <span class=nx>h</span> <span class=o>:=</span> <span class=k>range</span> <span class=nx>p</span><span class=p>.</span><span class=nx>Handlers</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>server</span><span class=p>.</span><span class=nf>Register</span><span class=p>(</span><span class=nx>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>server</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li><em>Server</em> 构造函数参数对象通过 <em>Handler</em> 字段请求 <em>server</em> 组中的所有 <em>Handler</em> 实例。<em>dig</em> 会先执行所有向该实例组添加实例值的构造函数，但执行顺序没有明确规定。</li></ul><p>‍</p><blockquote><p>实例组中的实例值是无序的，因为这些实例值的构建函数以什么顺序执行，<em>dig</em> 不作任何保证。</p></blockquote><p>‍</p><p>在某些场景，我们可能需要在 <em>dig.Out</em> 中添加切片字段，以便同时向实例值添加多个值。然而，考虑到实例组必须通过切片来请求的原则，我们只能通过切片的切片来获取这些实例值。</p><p>‍</p><p>好在 <em>v1.9.0</em> 版本后，<em>dig</em> 支持将切片中的元素逐个加入实例值，而不是将切片本身。想要实现这种效果，只需要为 <em>group</em> 标签打上 flatten 修饰语即可：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span> <span class=nx>IntResult</span> <span class=kd>struct</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>dig</span><span class=p>.</span><span class=nx>Out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>Handler</span> <span class=p>[]</span><span class=kt>int</span> <span class=s>`group:&#34;server&#34;`</span>         <span class=c1>// [][]int from dig.In
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=nx>Handler</span> <span class=p>[]</span><span class=kt>int</span> <span class=s>`group:&#34;server,flatten&#34;`</span> <span class=c1>// []int from dig.In
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li>第 <em>4</em> 行将切片本身添加进实例组，必须通过切片的切片（ <code>[][]int</code>​ ）来获取；</li><li>第 <em>5</em> 行将切片中的元素逐一加入实例组，通过实例切片（ <code>[]int</code>​ ）获取即可；</li></ul><p>‍</p></section><footer class=article-footer><section class=article-copyright><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg><span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>Related content</h2><div class=related-content><div class="flex article-list--tile"><article class=has-image><a href=/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/><div class=article-image><img src=/p/golang-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97%E7%A0%94%E7%A9%B6/113516139_p0.1e48a7a5a1c6446db54a8b58f78c36aa_hu860343e6a89ea3c01b81e7ebe66315aa_2765491_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post Golang 分布式定时任务模块研究" data-key="Golang 分布式定时任务模块研究" data-hash="md5-HkinpaHGRG21SotY94w2qg=="></div><div class=article-details><h2 class=article-title>Golang 分布式定时任务模块研究</h2></div></a></article><article class=has-image><a href=/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/><div class=article-image><img src=/p/fuction_calling-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/1699747644613.5cd4ccb8882827b5a7dc85518534dd9d_huadb2298c974893890e316b9292267589_1494364_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post Fuction_Calling 快速入门" data-key="Fuction_Calling 快速入门" data-hash="md5-XNTMuIgoJ7Wn3IVRhTTdnQ=="></div><div class=article-details><h2 class=article-title>Fuction_Calling 快速入门</h2></div></a></article><article class=has-image><a href=/p/%E7%BB%9F%E4%B8%80%E7%AE%A1%E7%90%86%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%B1%A0/><div class=article-image><img src=/p/%E7%BB%9F%E4%B8%80%E7%AE%A1%E7%90%86%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%B1%A0/FTwneuGaAAEIwOy.8e2a6ddf6ec18fca5a630c1cc8ae211a_hu3cd8c2a946427a90a45d3467884b8180_568116_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post 统一管理项目的线程池" data-key=统一管理项目的线程池 data-hash="md5-jipt327Bj8paYwwcyK4hGg=="></div><div class=article-details><h2 class=article-title>统一管理项目的线程池</h2></div></a></article><article class=has-image><a href=/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/><div class=article-image><img src=/p/redis-lua-%E8%84%9A%E6%9C%AC%E5%AE%9E%E7%8E%B0%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%88%86%E6%89%B9%E6%93%8D%E4%BD%9C/83565371_p0.a1df237a93ba3353d3c0d987520cc218_hua456e595fa8251e7d0c86f0f4b777cf0_328426_250x150_fill_q75_box_smart1.jpg width=250 height=150 loading=lazy alt="Featured image of post Redis Lua 脚本实现大数据分批操作" data-key="Redis Lua 脚本实现大数据分批操作" data-hash="md5-od8jepO6M1PTwNmHUgzCGA=="></div><div class=article-details><h2 class=article-title>Redis Lua 脚本实现大数据分批操作</h2></div></a></article><article class=has-image><a href=/p/%E4%BD%BF%E7%94%A8%E6%B3%A8%E8%A7%A3%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95%E7%9A%84%E4%BA%8B%E5%8A%A1%E6%89%A7%E8%A1%8C/><div class=article-image><img src=/p/%E4%BD%BF%E7%94%A8%E6%B3%A8%E8%A7%A3%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95%E7%9A%84%E4%BA%8B%E5%8A%A1%E6%89%A7%E8%A1%8C/112155320_p0.3e4ec0a8a34fc4e83a2b4f0a11c5a89a_hu01d92a70b7b8c10e235bacf971634f06_5629370_250x150_fill_box_smart1_3.png width=250 height=150 loading=lazy alt="Featured image of post 使用注解实现方法的事务执行" data-key=使用注解实现方法的事务执行 data-hash="md5-Pk7AqKNPxOg6K08KEcWomg=="></div><div class=article-details><h2 class=article-title>使用注解实现方法的事务执行</h2></div></a></article></div></div></aside><script src=https://utteranc.es/client.js repo=HildaM/hilda-blog-comment issue-term=pathname crossorigin=anonymous async></script><style>.utterances{max-width:unset}</style><script>let utterancesLoaded=!1;function setUtterancesTheme(e){let t=document.querySelector(".utterances iframe");t&&t.contentWindow.postMessage({type:"set-theme",theme:`github-${e}`},"https://utteranc.es")}addEventListener("message",e=>{if(e.origin!=="https://utteranc.es")return;utterancesLoaded=!0,setUtterancesTheme(document.documentElement.dataset.scheme)}),window.addEventListener("onColorSchemeChange",e=>{if(!utterancesLoaded)return;setUtterancesTheme(e.detail)})</script><footer class=site-footer><section class=copyright>&copy;
+2023 HildaM</section><section class=powerby>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.21.0>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>
